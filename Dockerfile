@@ -12,6 +12,9 @@ WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+# 生成 Vditor 本地静态资源：public/vendor 在 git/dockerignore 中被排除，
+# 必须在镜像内从 node_modules/vditor 同步，否则线上编辑器加载 cdn 资源 404
+RUN node scripts/sync-vditor-assets.mjs
 RUN node node_modules/next/dist/bin/next build
 
 # ---------- 运行：最小镜像 + git（docs 内 git 版本管理需要） ----------

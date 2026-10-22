@@ -1,11 +1,11 @@
 # 依赖
 node_modules/
 
-# 构建产物 / 框架缓存
+# 构建产物 / 框架缓存（仅根目录；不排除 public/vendor/vditor/dist 等静态资源）
 .next/
 out/
 build/
-dist/
+/dist/
 .turbo/
 .vercel/
 *.tsbuildinfo
