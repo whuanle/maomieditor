@@ -16,6 +16,8 @@ permissions:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    # Docker Hub 密钥配在名为 docker 的 Environment secrets 里
+    environment: docker
     steps:
       - name: Checkout
         uses: actions/checkout@v4
