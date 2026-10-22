@@ -41,7 +41,7 @@ jobs:
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=raw,value=latest,enable={{tag}}
+            type=raw,value=latest,enable=${{ github.event_name == 'push' }}
             # 手动触发（workflow_dispatch）时没有 tag，用 dev 兜底
             type=raw,value=dev,enable=${{ github.event_name == 'workflow_dispatch' }}
 
