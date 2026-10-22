@@ -1,0 +1,53 @@
+# 依赖
+node_modules/
+
+# 构建产物 / 框架缓存
+.next/
+out/
+build/
+dist/
+.turbo/
+.vercel/
+*.tsbuildinfo
+next-env.d.ts
+.eslintcache
+
+# docs：docker 映射的动态文档目录，随容器运行时维护，不属于代码
+docs/
+
+# 运行时数据与日志（本地存储、备份、调试日志）
+.data/
+logs/
+*.log
+
+# 环境变量（.env.example 保留提交）
+.env
+.env*.local
+
+# 编辑器
+.vscode/
+.idea/
+.history/
+*.swp
+*.swo
+
+# AI 工具缓存 / 会话目录
+.zcode/
+.claude/
+.cursor/
+.codex/
+.aider*
+.continue/
+.windsurf/
+.trae/
+.codeium/
+.tabnine/
+
+# 测试
+coverage/
+
+# 系统文件 / 证书
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.pem
