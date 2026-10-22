@@ -55,7 +55,6 @@ export async function POST(request: Request) {
     response.cookies.set(PROTECTION_COOKIE, renewed.token, {
       httpOnly: true,
       sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
       path: "/",
       maxAge: Math.max(0, renewed.exp - Math.floor(Date.now() / 1000)),
     });

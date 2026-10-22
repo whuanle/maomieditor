@@ -42,7 +42,6 @@ export async function POST(request: Request) {
   response.cookies.set(PROTECTION_COOKIE, session.token, {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
     path: "/",
     maxAge: transient ? 60 : timeoutMinutes * 60,
   });

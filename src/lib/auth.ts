@@ -138,10 +138,13 @@ function timingSafeEqual(a: string, b: string): boolean {
   return result === 0;
 }
 
+/**
+ * 会话 cookie 不设置 Secure 标志：浏览器会拒收 HTTP 明文响应里的 Secure cookie，
+ * 内网 http://IP:端口 等部署会登录成功却拿不到会话；HTTPS 部署可在自家网关补加该标志。
+ */
 export const sessionCookieOptions = {
   httpOnly: true,
   sameSite: "lax" as const,
-  secure: process.env.NODE_ENV === "production",
   path: "/",
   maxAge: SESSION_MAX_AGE_SECONDS,
 };
