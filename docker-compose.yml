@@ -1,0 +1,25 @@
+# 猫咪笔记 Docker 部署示例：
+#   docker compose up -d
+# 首次登录用 AUTH_PASSWORD；登录后可在 设置→密码 中修改（落盘 .data/auth.json）
+services:
+  maomi:
+    image: whuanle/maomiedtor:latest
+    container_name: maomi-notes
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      AUTH_USERNAME: admin
+      # 至少 6 位，首次启动用于初始化登录
+      AUTH_PASSWORD: changeme
+      # 随机长字符串，生成：
+      #   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+      AUTH_SECRET: please-change-me-to-a-long-random-string
+    volumes:
+      # 命名卷首次挂载会自动继承镜像内目录权限（uid 1001），无需手动 chown
+      - maomi-docs:/app/docs
+      - maomi-data:/app/.data
+
+volumes:
+  maomi-docs:
+  maomi-data:

@@ -239,7 +239,7 @@ export function BackupSection() {
         </SettingsGroup>
 
         <SettingsGroup title="上传恢复">
-          <p className="px-1 pb-3 text-[13px] leading-relaxed text-[var(--text-tertiary)]">
+          <p className="pr-1 pb-3 text-[13px] leading-relaxed text-[var(--text-tertiary)]">
             上传此前下载的备份压缩包，将全量覆盖当前的笔记、附件与回收站；恢复完成后工作台自动刷新。
           </p>
           <SettingsRow label="从备份恢复" description="选择 zip 备份文件，确认后覆盖现有全部内容">

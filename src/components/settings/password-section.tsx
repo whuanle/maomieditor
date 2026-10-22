@@ -289,7 +289,7 @@ function ProtectionGroup() {
 
   return (
     <SettingsGroup title="保护文档">
-      <p className="px-1 pb-3 text-[13px] leading-relaxed text-[var(--text-tertiary)]">
+      <p className="pr-1 pb-3 text-[13px] leading-relaxed text-[var(--text-tertiary)]">
         受保护的笔记默认使用登录密码解锁，也可单独设置保护密码；解锁一次后的有效期由受保护会话时间决定。
       </p>
       <SettingsRow

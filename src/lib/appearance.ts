@@ -150,7 +150,7 @@ export function applyAppearance(settings: AppearanceSettings): void {
 
 /**
  * 首帧前应用的内联脚本（防刷新闪烁）：读取 cookie 缓存 notes_settings_cache，
- * 应用外观变量与配色模式类名。与 applyAppearance/applyTheme 保持同一套逻辑的精简版，
+ * 应用外观变量、配色模式与主题预设类名。与 applyAppearance/applyTheme 保持同一套逻辑的精简版，
  * 由根布局注入 <head>；只能用 ES5 语法与直接量（不 import 本模块）。
  */
 export const SETTINGS_INIT_SCRIPT = `(function(){try{
@@ -181,4 +181,9 @@ var z=+p.uiZoom;
 s.zoom=(ZM.indexOf(z)>-1&&z!==1)?String(z):"";
 var t=a.theme;var r=(t==="light"||t==="dark")?t:((window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches)?"dark":"light");
 if(r==="dark")c.add("dark");else c.remove("dark");
+var LP=["classic","paper","sakura","mint"],DP=["classic-dark","midnight","forest","violet"];
+var TC=["theme-classic","theme-paper","theme-sakura","theme-mint","theme-classic-dark","theme-midnight","theme-forest","theme-violet"];
+for(var j=0;j<TC.length;j++)c.remove(TC[j]);
+var pk=r==="dark"?(DP.indexOf(a.themePresetDark)>-1?a.themePresetDark:"classic-dark"):(LP.indexOf(a.themePresetLight)>-1?a.themePresetLight:"classic");
+c.add("theme-"+pk);
 }catch(e){}})();`;

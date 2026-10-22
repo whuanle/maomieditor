@@ -7,6 +7,7 @@ import { EditableTitle } from "./editable-title";
 import { NoteIconButton } from "./note-icon-button";
 import { NoteProtectionButton } from "./note-protection-button";
 import { ShareDialog } from "./share-dialog";
+import { TocToggleButton } from "./toc-sidebar";
 import { VersionDialog } from "./version-dialog";
 
 interface NoteToolbarProps {
@@ -54,8 +55,9 @@ export function NoteToolbar({
         <button
           type="button"
           onClick={() => setShareOpen(true)}
+          disabled={protectedEffective}
           className="docs-button"
-          title="生成公开分享链接"
+          title={protectedEffective ? "受保护的笔记不能创建分享链接" : "生成公开分享链接"}
         >
           <Share2 className="h-3.5 w-3.5" />
           <span className="hidden md:inline">分享</span>
@@ -74,6 +76,7 @@ export function NoteToolbar({
           protectedEffective={protectedEffective}
           protectedInherited={protectedInherited}
         />
+        <TocToggleButton />
       </div>
 
       {shareOpen && (

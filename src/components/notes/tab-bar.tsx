@@ -181,7 +181,7 @@ export function TabBar() {
   }
 
   return (
-    <div className="flex h-11 shrink-0 items-stretch gap-1 border-b border-[var(--border-default)] bg-[var(--bg-tabbar)] px-1.5 py-1">
+    <div className="flex h-11 shrink-0 items-stretch gap-1 px-1.5 py-1">
       {tabs.length === 0 ? (
         <span className="flex items-center px-3 text-[13px] text-[var(--text-tertiary)]">
           未打开文档——在左侧点击一篇笔记开始
@@ -196,8 +196,8 @@ export function TabBar() {
                 key={tab.id}
                 className={`anim-slide-in group/tab relative flex min-w-[4.5rem] max-w-52 flex-1 cursor-pointer items-center gap-1.5 overflow-hidden rounded-lg pl-3 pr-1.5 text-[13px] transition-colors ${
                   active
-                    ? "bg-[var(--tab-active-bg)] font-medium text-[var(--text-primary)] shadow-[var(--shadow-md)]"
-                    : "text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+                    ? "bg-[var(--tab-active-bg)] font-medium text-[var(--text-primary)]"
+                    : "bg-[var(--tab-inactive-bg)] text-[var(--text-secondary)] hover:bg-[var(--tab-active-bg)] hover:text-[var(--text-primary)]"
                 }`}
                 onClick={() => router.push(tabUrl(tab.id, tab.edit))}
                 onContextMenu={(event) => openMenu(event, tab.id)}

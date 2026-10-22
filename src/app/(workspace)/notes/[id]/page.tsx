@@ -6,33 +6,76 @@ import { NoteLockScreen } from "@/components/notes/note-lock-screen";
 import { NoteToolbar } from "@/components/notes/note-toolbar";
 import { NoteEditorPage } from "@/components/notes/note-editor-page";
 import { TocSidebar } from "@/components/notes/toc-sidebar";
+import { TrashPreviewToolbar } from "@/components/notes/trash-preview-toolbar";
 import { VersionPreviewToolbar } from "@/components/notes/version-preview-toolbar";
-import { isNoteLocked } from "@/lib/note-guard";
-import { getNote, isValidId, readNote } from "@/lib/store";
+import { isNoteLocked, isTrashedNoteLocked } from "@/lib/note-guard";
+import { getNote, getTrashedNote, isValidId, readNote } from "@/lib/store";
 import { readVersion } from "@/lib/versions";
 
 export const dynamic = "force-dynamic";
 
 interface NotePageProps {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ edit?: string; v?: string }>;
+  searchParams: Promise<{ edit?: string; v?: string; trash?: string }>;
 }
 
 export async function generateMetadata({ params }: NotePageProps): Promise<Metadata> {
   const { id } = await params;
   const note = await getNote(id);
-  return { title: note ? `${note.icon ? `${note.icon} ` : ""}${note.title}` : "笔记" };
+  if (note) {
+    return { title: `${note.icon ? `${note.icon} ` : ""}${note.title}` };
+  }
+  // 已删除的笔记也能预览：标签页/浏览器标题带上原标题
+  const trashed = await getTrashedNote(id);
+  return { title: trashed ? `${trashed.icon ? `${trashed.icon} ` : ""}${trashed.title}` : "笔记" };
 }
 
 export default async function NotePage({ params, searchParams }: NotePageProps) {
   const { id } = await params;
-  const { edit, v } = await searchParams;
+  const { edit, v, trash } = await searchParams;
 
   if (!isValidId(id)) {
     notFound();
   }
 
   const note = await getNote(id);
+
+  // 回收站预览（?trash=1）：文件仍在 .trash，只读渲染，无任何编辑入口
+  if (!note && trash === "1") {
+    const trashed = await getTrashedNote(id);
+    if (!trashed) {
+      notFound();
+    }
+    if (await isTrashedNoteLocked(id)) {
+      return <NoteLockScreen noteId={id} title={trashed.title} icon={trashed.icon} />;
+    }
+    if (trashed.content !== null) {
+      const view =
+        trashed.format === "mdx" ? (
+          <MdxContent content={trashed.content} notePath={id} />
+        ) : (
+          <DocContentClient content={trashed.content} notePath={id} />
+        );
+      return (
+        <div className="flex h-full min-h-0 flex-col">
+          <TrashPreviewToolbar
+            noteId={id}
+            title={trashed.title}
+            icon={trashed.icon}
+            deletedAt={trashed.deletedAt}
+          />
+          <div className="flex min-h-0 flex-1">
+            <div id="note-reader-scroll" className="min-h-0 min-w-0 flex-1 overflow-y-auto">
+              <div className="px-6 py-8 md:px-10 md:py-10">{view}</div>
+            </div>
+            <TocSidebar title={trashed.title} scrollSelector="#note-reader-scroll" />
+          </div>
+        </div>
+      );
+    }
+    notFound();
+  }
+
   if (!note) {
     notFound();
   }

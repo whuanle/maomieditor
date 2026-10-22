@@ -49,6 +49,8 @@ export interface SyncSummary {
   deleted: number;
   skipped: number;
   errors: { key: string; error: string }[];
+  /** 智能同步发现的两边都改过的文件：不覆盖，只记录待人工处理 */
+  conflicts: { key: string; detail: string }[];
 }
 
 export interface SyncState {
@@ -64,7 +66,7 @@ export interface SyncState {
 export type SyncMode = "auto" | "smart" | "push-all" | "pull-all";
 
 export function emptySummary(): SyncSummary {
-  return { uploaded: 0, downloaded: 0, deleted: 0, skipped: 0, errors: [] };
+  return { uploaded: 0, downloaded: 0, deleted: 0, skipped: 0, errors: [], conflicts: [] };
 }
 
 export async function readSyncConfig(): Promise<SyncConfig> {
@@ -136,7 +138,7 @@ export function toS3View(s3: S3StoredConfig | undefined): S3ConfigView {
     enabled: !!s3?.enabled && s3Configured(s3),
     configured: s3Configured(s3),
     endpoint: s3?.endpoint ?? "",
-    region: s3?.region ?? "us-east-1",
+    region: s3?.region ?? "",
     bucket: s3?.bucket ?? "",
     prefix: s3?.prefix ?? "",
     accessKeyId: s3?.accessKeyId ?? "",

@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth";
 import { decryptSecretField } from "@/lib/rsa";
-import { isSyncing, runSync, testS3Connection } from "@/lib/sync-engine";
+import { isSyncing, testS3Connection } from "@/lib/sync-engine";
+import { getActiveSyncJob } from "@/lib/sync-jobs";
+import type { JobRecord } from "@/lib/job-queue";
 import { kickAutoSync } from "@/lib/sync-watcher";
 import {
   normalizePrefix,
@@ -17,8 +19,9 @@ import { readGitStatus, setupGit } from "@/lib/git-sync";
 
 /**
  * 同步设置 API（服务端，Node 运行时）：
- * - GET：S3 配置视图（不含 Secret）、Git 仓库状态、最近同步结果
- * - POST action：save-s3 / set-s3-enabled / test-s3 / sync / save-git
+ * - GET：S3 配置视图（不含 Secret）、Git 仓库状态、最近同步结果、进行中的同步任务
+ * - POST action：save-s3 / set-s3-enabled / test-s3 / save-git
+ *   （手动同步已移至后台任务 API：POST /api/jobs action=run-sync）
  * Secret Access Key 经 RSA 信封加密传输（decryptSecretField 兼容明文字符串）。
  */
 
@@ -31,10 +34,12 @@ interface SyncStatusResponse {
     tracked: number;
   };
   syncing: boolean;
+  activeJob: JobRecord | null;
 }
 
 export async function GET() {
   const [config, git, state] = await Promise.all([readSyncConfig(), readGitStatus(), readSyncState()]);
+  const activeJob = (await getActiveSyncJob()) ?? null;
   const body: SyncStatusResponse = {
     s3: toS3View(config.s3),
     git,
@@ -43,7 +48,8 @@ export async function GET() {
       lastManual: state.lastManual,
       tracked: Object.keys(state.entries).length,
     },
-    syncing: isSyncing(),
+    syncing: isSyncing() || activeJob !== null,
+    activeJob,
   };
   return NextResponse.json(body);
 }
@@ -82,7 +88,8 @@ export async function POST(request: Request) {
         if (endpoint && /\s/.test(endpoint)) {
           return NextResponse.json({ error: "服务端点地址不能包含空格" }, { status: 400 });
         }
-        const region = str(body.region).trim() || "us-east-1";
+        // 地区允许留空：自建 MinIO/OSS 等无地区概念，签名时客户端回退 us-east-1
+        const region = str(body.region).trim();
 
         // Secret：信封加密或明文；未提供（空串/缺字段）= 沿用已保存值
         let secret = existing?.secretAccessKey ?? "";
@@ -150,29 +157,12 @@ export async function POST(request: Request) {
         }
         const result = await testS3Connection({
           endpoint: str(body.endpoint).trim(),
-          region: str(body.region).trim() || "us-east-1",
+          region: str(body.region).trim(),
           bucket,
           accessKeyId,
           secretAccessKey: secret,
         });
         return NextResponse.json({ ok: true, objectCount: result.objectCount });
-      }
-
-      case "sync": {
-        const mode = str(body.mode);
-        if (mode !== "smart" && mode !== "push-all" && mode !== "pull-all") {
-          return NextResponse.json({ error: "未知同步模式" }, { status: 400 });
-        }
-        // 覆盖类操作破坏性大，必须由前端确认弹窗显式带 confirm 才执行
-        if (mode !== "smart" && body.confirm !== true) {
-          return NextResponse.json({ error: "覆盖操作需要确认" }, { status: 400 });
-        }
-        const config = await readSyncConfig();
-        if (!s3Configured(config.s3)) {
-          return NextResponse.json({ error: "请先完成 S3 配置" }, { status: 400 });
-        }
-        const summary = await runSync(mode);
-        return NextResponse.json({ ok: true, summary });
       }
 
       case "save-git": {

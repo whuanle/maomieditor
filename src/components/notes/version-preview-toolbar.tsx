@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { History, RotateCcw, X } from "lucide-react";
 import { refreshTree } from "./sidebar";
+import { TocToggleButton } from "./toc-sidebar";
 
 interface VersionPreviewToolbarProps {
   noteId: string;
@@ -78,6 +79,7 @@ export function VersionPreviewToolbar({ noteId, title, icon, ts }: VersionPrevie
           <X className="h-3.5 w-3.5" />
           返回当前版本
         </button>
+        <TocToggleButton />
       </div>
     </div>
   );

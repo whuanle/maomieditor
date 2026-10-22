@@ -12,6 +12,7 @@ import rehypeKatex from "rehype-katex";
 import Prism from "prismjs";
 import { stripFrontmatter } from "@/lib/markdown";
 import { resolveAssetSrc, resolveNoteHref } from "@/lib/markdown-path";
+import { openAttachmentPreviewFromUrl } from "@/components/notes/attachment-preview";
 import { ZoomableImage } from "./zoomable-image";
 import { MermaidDiagram } from "./mermaid-diagram";
 import { CodeTabs } from "./doc-tabs";
@@ -66,6 +67,17 @@ interface MarkdownNode {
 }
 
 const GAP_PRESERVING_PARENT_TYPES = new Set(["root", "blockquote", "listItem"]);
+
+/** 提取链接/节点的纯文本，用作附件预览的显示名 */
+function childText(node: unknown): string {
+  if (typeof node === "string" || typeof node === "number") return String(node);
+  if (Array.isArray(node)) return node.map(childText).join("");
+  if (typeof node === "object" && node !== null && "props" in node) {
+    const props = (node as { props?: { children?: unknown } }).props;
+    if (props && "children" in props) return childText(props.children);
+  }
+  return "";
+}
 
 function createBreakNodes(count: number): MarkdownNode[] {
   if (count <= 0) {
@@ -275,6 +287,14 @@ export function DocContentClient({
 
       return <PreBlock>{children}</PreBlock>;
     },
+    // 自定义 table 标签：包一层横向滚动容器，超宽表格滚动查看而不挤压列或撑破正文
+    table({ children, node: _node, ...props }: ComponentPropsWithoutRef<"table"> & { node?: unknown }) {
+      return (
+        <div className="table-wrap">
+          <table {...props}>{children}</table>
+        </div>
+      );
+    },
     // 自定义 code 标签
     code({ className, children, ...props }: ComponentPropsWithoutRef<"code">) {
       const match = /language-(\w+)/.exec(className || "");
@@ -344,8 +364,31 @@ export function DocContentClient({
         }
 
         if (resolved?.kind === "asset") {
+          // 分享页没有登录态，保持原下载链接；站内左键点击改为先预览（中键/修饰键保留默认行为）
+          if (mode === "share") {
+            return (
+              <a href={resolved.url} {...props}>
+                {children}
+              </a>
+            );
+          }
           return (
-            <a href={resolved.url} {...props}>
+            <a
+              href={resolved.url}
+              {...props}
+              onClick={(event) => {
+                if (
+                  event.button === 0 &&
+                  !event.metaKey &&
+                  !event.ctrlKey &&
+                  !event.shiftKey &&
+                  !event.altKey &&
+                  openAttachmentPreviewFromUrl(resolved.url, childText(children))
+                ) {
+                  event.preventDefault();
+                }
+              }}
+            >
               {children}
             </a>
           );

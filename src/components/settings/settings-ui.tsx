@@ -4,20 +4,57 @@ import type { ReactNode } from "react";
 
 /** 设置分区共享 UI：Trilium 风格分组/设置行/分段按钮/开关（外观与密码等分区复用） */
 
-export function SettingsGroup({ title, children, spaced = true }: { title: string; children: ReactNode; spaced?: boolean }) {
+/** 层级缩进规则：分组标题左缘为 0，组内容缩进一级（pl-5），子分组下的行再缩进一级（行自身 pl-5） */
+const INDENT = "pl-5";
+
+export function SettingsGroup({
+  title,
+  children,
+  spaced = true,
+  titleExtra,
+}: {
+  title: string;
+  children: ReactNode;
+  spaced?: boolean;
+  /** 分组标题行右侧内容（如状态徽章） */
+  titleExtra?: ReactNode;
+}) {
   return (
     <section className={spaced ? "mt-7 first:mt-6" : "mt-7"}>
-      <h2 className="border-b border-[var(--border-default)] pb-2 text-[15px] font-semibold text-[var(--text-heading)]">
-        {title}
-      </h2>
-      <div className="divide-y divide-[var(--border-faint,var(--border-default))]">{children}</div>
+      <div className="flex items-center gap-3 border-b border-[var(--border-default)] pb-2">
+        <h2 className="flex-1 text-[15px] font-semibold text-[var(--text-heading)]">{title}</h2>
+        {titleExtra}
+      </div>
+      {/* 组内容整体缩进一级：分隔线也跟随缩进，体现从属于标题 */}
+      <div className={`divide-y divide-[var(--border-faint,var(--border-default))] ${INDENT}`}>{children}</div>
     </section>
   );
 }
 
-export function SettingsRow({ label, description, children }: { label: string; description: string; children: ReactNode }) {
+/** 组内子分组标题（如「手动同步」）：与组内容同级，其下的行加 nested 再缩进一级 */
+export function SettingsSubgroup({ title, children }: { title: string; children?: ReactNode }) {
   return (
-    <div className="flex items-center justify-between gap-6 py-3">
+    <div className="py-3">
+      <h3 className="text-[13px] font-medium text-[var(--text-secondary)]">{title}</h3>
+      {children && <div className="mt-2 space-y-1">{children}</div>}
+    </div>
+  );
+}
+
+export function SettingsRow({
+  label,
+  description,
+  nested = false,
+  children,
+}: {
+  label: string;
+  description: string;
+  /** 位于子分组（SettingsSubgroup）之下时为真：再缩进一级 */
+  nested?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div className={`flex items-center justify-between gap-6 py-3 ${nested ? INDENT : ""}`}>
       <div className="min-w-0">
         <p className="text-[15px] text-[var(--text-primary)]">{label}</p>
         <p className="mt-0.5 text-[13px] text-[var(--text-tertiary)]">{description}</p>

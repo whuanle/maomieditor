@@ -78,7 +78,30 @@ src/lib/         store（虚拟树存储层+回收站）、versions（版本快�
 - 上传文件仅按附件处理：除图片/视频/音频/PDF 外一律强制下载（`Content-Disposition: attachment`），不会内联执行
 - 分享页只能访问分享笔记子树内笔记挂载的附件
 - 所有笔记路由（`/notes`、`/api/notes`、`/api/attachments`、`/api/shares`、`/api/upload`）均要求登录
-- 两步验证（TOTP，RFC 6238）：绑定密钥存 `.data/mfa.json`，校验允许 ±30 秒时钟偏差且同一验证码不可重复使用；密码通过后仅发放 5 分钟有效的挑战令牌，验证码通过才建立会话。丢失验证器时删除该文件即可重置回仅密码登录
+- 两步验证（TOTP，RFC 6238）：绑定密钥存 `.data/mfa.json`，校验允许 ±30 秒时钟偏差且同一验证码不可重复使用；密码通过后仅发放 5 分钟有效的挑战令牌，验证码通过才建立会话
+- 忘记密码 / 丢失验证器时支持运维重置，见下文「运维重置」
+
+## 运维重置（忘记密码 / 丢失验证器）
+
+登录凭证全部落在文件里：密码哈希存 `.data/auth.json`（scrypt），两步验证配置存 `.data/mfa.json`（TOTP），均在登录时实时读取。忘记密码、丢失验证器（手机）或两者同时发生时，在服务器上运行 `scripts/reset-auth.ts`：
+
+```bash
+bun run reset-auth                                          # 交互式菜单
+bun run reset-auth --status                                 # 只查看当前状态，不做修改
+bun run reset-auth --generate-password --disable-mfa --yes  # 非交互：随机密码 + 关闭两步验证
+bun run reset-auth --password "新密码" --yes                # 非交互：指定新密码
+```
+
+- 重置立即生效，**无需重启服务**；被覆盖的文件自动备份为 `*.bak-<时间戳>`，确认无误后可手动删除
+- 随机密码 14 位（已去掉 0O1lI 等易混淆字符），只在屏幕显示一次；登录用户名取 `AUTH_USERNAME`（默认 `admin`）
+- 重新登录后建议尽快在 设置 → MFA 认证 重新绑定验证器
+- 也可在任意目录直接 `bun scripts/reset-auth.ts`，脚本会自动定位项目根
+
+注意事项：
+
+- 重置不影响已登录的会话（30 天 HMAC Cookie）。如担心丢失的手机上仍保留登录态、需强制全部下线：修改 `.env.local` 的 `AUTH_SECRET` 后重启服务
+- 笔记保护密码未单独设置时与登录密码相同，重置后跟随新密码；已单独设置则不受影响（`--status` 会显示属于哪种情况）
+- 若 `--password` 传入的密码不想留在 shell 历史里，改用交互式菜单或 `--generate-password`
 
 ## 后续规划
 

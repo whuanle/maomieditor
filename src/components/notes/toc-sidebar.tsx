@@ -8,6 +8,14 @@ const AUTO_OPEN_THRESHOLD = 3;
 /** 标题滚过滚动容器顶部该距离后切换高亮（略大于标题的 scroll-margin-top） */
 const SPY_OFFSET = 48;
 
+/**
+ * 工具栏的目录按钮与目录面板分处服务端组件树两侧，无法共享 state，
+ * 走与 notes:tree-refresh 同款的事件模式：按钮发 toggle 请求切换，
+ * 面板在展开态每次变化时广播 state 供按钮同步图标
+ */
+const TOC_TOGGLE_EVENT = "notes:toc-toggle";
+const TOC_STATE_EVENT = "notes:toc-state";
+
 interface HeadingRef {
   el: HTMLHeadingElement;
   level: number;
@@ -17,8 +25,7 @@ interface HeadingRef {
 interface TocSidebarProps {
   /**
    * 内容滚动容器的 CSS 选择器。阅读视图是 page 里的滚动 div；
-   * 编辑视图的滚动容器在 MDXEditor 内部（dynamic 加载后才出现，源码/富文本切换时还会替换），
-   * 因此列出所有候选，命中第一个存在的。
+   * 编辑视图的滚动容器在 Vditor 内部（dynamic 加载后才出现）。
    */
   scrollSelector: string;
   /** 笔记标题：正文首个 H1 与之相同时不在目录中重复列出（标题已显示在工具栏） */
@@ -28,6 +35,17 @@ interface TocSidebarProps {
 // SSR 渲染客户端组件时 useLayoutEffect 会告警，服务端退化为 useEffect
 const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
+// IR 编辑器把 markdown 标记符（标题的 #、加粗的 ** 等）渲染为标题内的
+// .vditor-ir__marker span，取标题文本时须剔除，否则目录条目带出 "# " 前缀
+function headingText(el: HTMLHeadingElement): string {
+  if (!el.querySelector(".vditor-ir__marker")) {
+    return (el.textContent ?? "").trim();
+  }
+  const clone = el.cloneNode(true) as HTMLHeadingElement;
+  clone.querySelectorAll(".vditor-ir__marker").forEach((marker) => marker.remove());
+  return (clone.textContent ?? "").trim();
+}
+
 // 从滚动容器解析标题列表；正文首个 H1 与笔记标题相同时不列出（标题已显示在工具栏）
 function collectHeadings(scroll: HTMLElement, title?: string): HeadingRef[] {
   const next: HeadingRef[] = [];
@@ -35,7 +53,7 @@ function collectHeadings(scroll: HTMLElement, title?: string): HeadingRef[] {
     if (!el.isConnected) {
       return;
     }
-    const text = (el.textContent ?? "").trim();
+    const text = headingText(el);
     if (text) {
       next.push({ el, level: Number(el.tagName.slice(1)), text });
     }
@@ -71,6 +89,21 @@ export function TocSidebar({ scrollSelector, title }: TocSidebarProps) {
     userToggledRef.current = true;
     setOpen(next);
   }, []);
+
+  // 工具栏目录按钮的切换请求（等价于原右缘把手，算用户手动操作，之后不再自动变更）
+  useEffect(() => {
+    const onToggle = () => {
+      userToggledRef.current = true;
+      setOpen((prev) => !prev);
+    };
+    window.addEventListener(TOC_TOGGLE_EVENT, onToggle);
+    return () => window.removeEventListener(TOC_TOGGLE_EVENT, onToggle);
+  }, []);
+
+  // 展开态每次变化（含挂载时的自动展开）都广播，工具栏按钮据此换图标
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent(TOC_STATE_EVENT, { detail: { open } }));
+  }, [open]);
 
   // 扫描标题 + 滚动高亮。滚动容器可能延迟挂载或被替换，统一在 body 的
   // MutationObserver 里重新解析（防抖 + 内容比对，避免编辑器打字时反复重渲染）
@@ -165,21 +198,9 @@ export function TocSidebar({ scrollSelector, title }: TocSidebarProps) {
       ?.scrollIntoView({ block: "nearest" });
   }, [activeIdx, open]);
 
-  // 收起：右缘留一个展开把手，不占内容宽度
+  // 收起时不渲染任何东西：开关在工具栏的目录按钮（TocToggleButton）里
   if (!open) {
-    return (
-      <div className="relative hidden w-0 shrink-0 lg:block">
-        <button
-          type="button"
-          onClick={() => toggle(true)}
-          className="absolute top-2 right-0 z-10 flex h-8 w-8 items-center justify-center rounded-l-md border border-r-0 border-[var(--border-default)] bg-[var(--bg-secondary)] text-[var(--text-tertiary)] shadow-sm transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
-          title="展开目录"
-          aria-label="展开目录"
-        >
-          <PanelRightOpen className="h-4 w-4" />
-        </button>
-      </div>
-    );
+    return null;
   }
 
   return (
@@ -222,5 +243,38 @@ export function TocSidebar({ scrollSelector, title }: TocSidebarProps) {
         )}
       </div>
     </aside>
+  );
+}
+
+/**
+ * 工具栏里的目录开关，放在操作按钮组的最后（带一条分组分隔线）。
+ * 目录面板只在 lg 及以上显示，按钮同步隐藏；docs-button 的 display 写在
+ * globals.css（无层叠层，优先级高于 Tailwind 工具类），需 ! 后缀才能响应式改显隐
+ */
+export function TocToggleButton() {
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    const onState = (event: Event) => {
+      setOpen((event as CustomEvent<{ open: boolean }>).detail.open);
+    };
+    window.addEventListener(TOC_STATE_EVENT, onState);
+    return () => window.removeEventListener(TOC_STATE_EVENT, onState);
+  }, []);
+
+  return (
+    <>
+      <span aria-hidden="true" className="mx-1 hidden h-4 w-px bg-[var(--border-default)] lg:block" />
+      <button
+        type="button"
+        onClick={() => window.dispatchEvent(new CustomEvent(TOC_TOGGLE_EVENT))}
+        aria-pressed={open}
+        title={open ? "收起目录" : "展开目录（标题超过 3 个时自动展开）"}
+        className="docs-button hidden! lg:inline-flex!"
+      >
+        {open ? <PanelRightClose className="h-3.5 w-3.5" /> : <PanelRightOpen className="h-3.5 w-3.5" />}
+        <span className="hidden md:inline">目录</span>
+      </button>
+    </>
   );
 }

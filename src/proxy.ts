@@ -37,6 +37,8 @@ export const config = {
     "/api/attachments/:path*",
     "/api/shares/:path*",
     "/api/sync",
+    "/api/jobs",
+    "/api/jobs/:path*",
     "/api/trash/:path*",
     "/api/versions/:path*",
     "/api/backup/:path*",

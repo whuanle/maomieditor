@@ -1,11 +1,11 @@
 import fs from "node:fs";
 import { DOCS_ROOT } from "./paths";
-import { runSync } from "./sync-engine";
-import { readSyncConfig, s3Configured } from "./sync-store";
+import { enqueueAutoSync } from "./sync-jobs";
 
 /**
  * docs 目录监听：开启 S3 同步后，文件变化（应用内编辑、拖入、外部工具直改）
  * 防抖 5 秒后自动做一次增量推送（只推不拉，见 sync-engine 的 auto 模式）。
+ * 推送以后台任务执行（.data/jobs.json 有记录，失败可在设置-同步查看）。
  *
  * 由 instrumentation.register() 在服务启动时拉起；globalThis 防止 dev 热重载
  * 重复注册。每次触发都现读 .data/sync.json——配置变更（启停/改桶）无需重启即时生效。
@@ -31,21 +31,9 @@ function schedule(delayMs: number): void {
   }
   g.__syncWatcherTimer = setTimeout(() => {
     g.__syncWatcherTimer = undefined;
-    void autoPush().catch(() => undefined); // doSync 内部已把逐文件错误记进 summary
+    void enqueueAutoSync(); // 未启用时内部静默跳过；失败记录进任务日志
   }, delayMs);
   g.__syncWatcherTimer.unref?.();
-}
-
-async function autoPush(): Promise<void> {
-  const config = await readSyncConfig();
-  if (!s3Configured(config.s3) || !config.s3!.enabled) {
-    return;
-  }
-  try {
-    await runSync("auto");
-  } catch (error) {
-    console.warn("[sync] 自动推送失败：", error instanceof Error ? error.message : error);
-  }
 }
 
 export function startSyncWatcher(): void {

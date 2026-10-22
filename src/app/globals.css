@@ -11,8 +11,8 @@
   --bg-card: #ffffff;
   --bg-sidebar: #f8f8f8;
   --bg-sidebar-deep: #f2f3f5;
-  --bg-tabbar: #e3e4e8;
-  --tab-active-bg: #ffffff;
+  --tab-active-bg: #d6d8de;
+  --tab-inactive-bg: #f0f1f4;
 
   --text-primary: #1f2328;
   --text-secondary: #59636e;
@@ -58,8 +58,8 @@
   --bg-card: #252526;
   --bg-sidebar: #181818;
   --bg-sidebar-deep: #141414;
-  --bg-tabbar: #181818;
-  --tab-active-bg: #252526;
+  --tab-active-bg: #3a3d43;
+  --tab-inactive-bg: #26272b;
 
   --text-primary: #cccccc;
   --text-secondary: #9d9d9d;
@@ -90,6 +90,230 @@
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
   --shadow-md: 0 2px 6px 0 rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 4px 12px 0 rgba(0, 0, 0, 0.5);
+}
+
+/* ===== 内置主题预设：浅色系变体（classic 直接用 :root） ===== */
+html.theme-paper {
+  --bg-primary: #faf7f0;
+  --bg-secondary: #f5f1e8;
+  --bg-tertiary: #fbf8f1;
+  --bg-hover: #efe9db;
+  --bg-card: #fffdf8;
+  --bg-sidebar: #f3eee3;
+  --bg-sidebar-deep: #ece6d8;
+  --tab-active-bg: #e5ddc9;
+  --tab-inactive-bg: #f0ebdd;
+
+  --text-primary: #3d3a33;
+  --text-secondary: #6b665a;
+  --text-prose: #433f36;
+  --text-tertiary: #948d7c;
+  --text-muted: #b8b09e;
+  --text-heading: #37342d;
+
+  --accent-50: #f7efe3;
+  --accent-100: #eeddc4;
+  --accent-200: #dfc096;
+  --accent-300: #cd9f63;
+  --accent-400: #bb8340;
+  --accent-500: #a5702e;
+  --accent-600: #8a5a24;
+  --accent-700: #6d471d;
+  --accent-800: #523517;
+
+  --border-default: #e4ddcd;
+  --border-strong: #d3c9b2;
+  --border-dashed: #d3c9b2;
+
+  --code-bg: #f1ecdf;
+  --code-text: #4a4232;
+  --code-border: #e4ddcd;
+}
+
+html.theme-sakura {
+  --bg-primary: #fdf8f9;
+  --bg-secondary: #faf1f3;
+  --bg-tertiary: #fffafa;
+  --bg-hover: #f6e6ea;
+  --bg-card: #fffbfc;
+  --bg-sidebar: #f9eff1;
+  --bg-sidebar-deep: #f3e4e8;
+  --tab-active-bg: #efd3da;
+  --tab-inactive-bg: #f5e7ea;
+
+  --text-primary: #403038;
+  --text-secondary: #6f5a63;
+  --text-prose: #45323b;
+  --text-tertiary: #9c8590;
+  --text-muted: #c2a9b2;
+  --text-heading: #3a2b33;
+
+  --accent-50: #fdeef3;
+  --accent-100: #f9d9e3;
+  --accent-200: #f2b5c9;
+  --accent-300: #e88aab;
+  --accent-400: #d95f8b;
+  --accent-500: #cc4f7d;
+  --accent-600: #ab3a64;
+  --accent-700: #8a2e50;
+  --accent-800: #6a233e;
+
+  --border-default: #f0dde2;
+  --border-strong: #e0c2cb;
+  --border-dashed: #e0c2cb;
+
+  --code-bg: #f8ecef;
+  --code-text: #4d3540;
+  --code-border: #f0dde2;
+}
+
+html.theme-mint {
+  --bg-primary: #f9fdfb;
+  --bg-secondary: #eff7f2;
+  --bg-tertiary: #fbfefd;
+  --bg-hover: #e2f0e9;
+  --bg-card: #fdfefd;
+  --bg-sidebar: #ecf5f0;
+  --bg-sidebar-deep: #e2eee7;
+  --tab-active-bg: #d2e8dd;
+  --tab-inactive-bg: #e6f2ec;
+
+  --text-primary: #293832;
+  --text-secondary: #55695f;
+  --text-prose: #2f3f37;
+  --text-tertiary: #8a9d93;
+  --text-muted: #b0c2b9;
+  --text-heading: #243029;
+
+  --accent-50: #e6f6ef;
+  --accent-100: #cdecdf;
+  --accent-200: #9ed9c0;
+  --accent-300: #66c4a2;
+  --accent-400: #33ab86;
+  --accent-500: #159171;
+  --accent-600: #0e7a5f;
+  --accent-700: #0b614b;
+  --accent-800: #084939;
+
+  --border-default: #dcebe3;
+  --border-strong: #c5dcd0;
+  --border-dashed: #c5dcd0;
+
+  --code-bg: #edf6f1;
+  --code-text: #2c4a3d;
+  --code-border: #dcebe3;
+}
+
+/* ===== 内置主题预设：深色系变体（classic-dark 直接用 .dark；需与 .dark 类共存） ===== */
+html.theme-midnight {
+  --bg-primary: #0f1419;
+  --bg-secondary: #131a22;
+  --bg-tertiary: #18212b;
+  --bg-hover: #1b2632;
+  --bg-card: #131a22;
+  --bg-sidebar: #0b1016;
+  --bg-sidebar-deep: #080d12;
+  --tab-active-bg: #223140;
+  --tab-inactive-bg: #151d26;
+
+  --text-primary: #c3cedb;
+  --text-secondary: #8fa0b3;
+  --text-prose: #ccd6e2;
+  --text-tertiary: #647485;
+  --text-muted: #4a5a6b;
+  --text-heading: #dfe7f0;
+
+  --accent-50: rgba(96, 165, 250, 0.08);
+  --accent-100: rgba(96, 165, 250, 0.14);
+  --accent-200: rgba(96, 165, 250, 0.22);
+  --accent-300: rgba(96, 165, 250, 0.35);
+  --accent-400: #60a5fa;
+  --accent-500: #60a5fa;
+  --accent-600: #60a5fa;
+  --accent-700: #93c5fd;
+  --accent-800: #bfdbfe;
+
+  --border-default: #1d2833;
+  --border-strong: #2b3a49;
+  --border-dashed: #2b3a49;
+
+  --code-bg: #0d141c;
+  --code-text: #ccd6e2;
+  --code-border: #1d2833;
+}
+
+html.theme-forest {
+  --bg-primary: #101613;
+  --bg-secondary: #141c17;
+  --bg-tertiary: #1a241e;
+  --bg-hover: #1d2922;
+  --bg-card: #141c17;
+  --bg-sidebar: #0c110e;
+  --bg-sidebar-deep: #090d0b;
+  --tab-active-bg: #223329;
+  --tab-inactive-bg: #16201a;
+
+  --text-primary: #c2cfc6;
+  --text-secondary: #8fa295;
+  --text-prose: #ccd9d0;
+  --text-tertiary: #647a6c;
+  --text-muted: #4a5c50;
+  --text-heading: #dfe9e2;
+
+  --accent-50: rgba(74, 222, 128, 0.08);
+  --accent-100: rgba(74, 222, 128, 0.14);
+  --accent-200: rgba(74, 222, 128, 0.22);
+  --accent-300: rgba(74, 222, 128, 0.35);
+  --accent-400: #4ade80;
+  --accent-500: #4ade80;
+  --accent-600: #4ade80;
+  --accent-700: #86efac;
+  --accent-800: #bbf7d0;
+
+  --border-default: #1e2a23;
+  --border-strong: #2c3d33;
+  --border-dashed: #2c3d33;
+
+  --code-bg: #0e1411;
+  --code-text: #ccd9d0;
+  --code-border: #1e2a23;
+}
+
+html.theme-violet {
+  --bg-primary: #17131f;
+  --bg-secondary: #1c1726;
+  --bg-tertiary: #221c2e;
+  --bg-hover: #251e33;
+  --bg-card: #1c1726;
+  --bg-sidebar: #120e19;
+  --bg-sidebar-deep: #0e0b14;
+  --tab-active-bg: #312944;
+  --tab-inactive-bg: #1f1a2b;
+
+  --text-primary: #cdc8db;
+  --text-secondary: #9c94b3;
+  --text-prose: #d6d0e2;
+  --text-tertiary: #6f6785;
+  --text-muted: #524a66;
+  --text-heading: #e6e1f0;
+
+  --accent-50: rgba(167, 139, 250, 0.08);
+  --accent-100: rgba(167, 139, 250, 0.14);
+  --accent-200: rgba(167, 139, 250, 0.22);
+  --accent-300: rgba(167, 139, 250, 0.35);
+  --accent-400: #a78bfa;
+  --accent-500: #a78bfa;
+  --accent-600: #a78bfa;
+  --accent-700: #c4b5fd;
+  --accent-800: #ddd6fe;
+
+  --border-default: #271f33;
+  --border-strong: #362c47;
+  --border-dashed: #362c47;
+
+  --code-bg: #140f1d;
+  --code-text: #d6d0e2;
+  --code-border: #271f33;
 }
 
 * { border-color: var(--border-default); }
@@ -273,12 +497,26 @@ html.content-centered .docs-prose {
   background: var(--bg-secondary);
 }
 
-/* 表格 */
+/* 表格：宽度按内容自适应，稀疏表格不再被强制拉满正文宽度；
+   超宽表格由 .table-wrap（阅读视图）提供横向滚动，避免挤压列或撑破布局 */
 .docs-prose table {
-  width: 100%;
+  width: max-content;
+  max-width: 100%;
   border-collapse: collapse;
   margin: 1.5rem 0;
   font-size: 0.875rem;
+}
+
+/* 阅读视图表格滚动容器（doc-content-client 的 table 组件包裹）；
+   容器内表格不受 max-width: 100% 限制，超出时横向滚动 */
+.docs-prose .table-wrap {
+  overflow-x: auto;
+  margin: 1.5rem 0;
+}
+
+.docs-prose .table-wrap > table {
+  max-width: none;
+  margin: 0;
 }
 
 .docs-prose th, .docs-prose td {
@@ -384,6 +622,14 @@ html.content-centered .docs-prose {
   background: var(--bg-hover);
   border-color: transparent;
   color: var(--text-primary);
+}
+.docs-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.docs-button:disabled:hover {
+  background: transparent;
+  color: var(--text-secondary);
 }
 
 @media (max-width: 1024px) {
@@ -656,41 +902,131 @@ pre[class*="language-"] {
   border-left-color: var(--accent-600) !important;
 }
 
-/* ===== MDXEditor 富文本编辑器 ===== */
-/* 编辑面复用 docs-prose（通过 contentEditableClassName），
-   这里只做编辑器特有的间距、滚动与 CodeMirror 集成 */
+/* ===== Vditor 即时渲染编辑器 ===== */
+/* 将 vditor 的外观变量映射到应用主题变量；编辑面排版（字号/行高/字体/宽度）
+   跟随外观设置，与阅读视图 docs-prose 一致 */
 
-.rich-editor-shell .mdxeditor [role="textbox"] {
-  outline: none;
-  padding: 1.5rem 1.25rem 40vh;
-  caret-color: var(--accent-600);
+.rich-editor-shell .vditor {
+  border: none;
+  border-radius: 0;
+  --panel-background-color: var(--bg-primary);
+  --panel-shadow: 0 4px 16px rgb(0 0 0 / 0.12);
+  --toolbar-background-color: var(--bg-secondary);
+  --toolbar-icon-color: var(--text-secondary);
+  --toolbar-icon-hover-color: var(--accent-600);
+  --toolbar-height: 40px;
+  --border-color: var(--border-default);
+  --textarea-background-color: var(--bg-primary);
+  --textarea-text-color: var(--text-prose);
+  --second-color: var(--border-strong);
+  --heading-border-color: var(--border-default);
+  --blockquote-border-color: var(--accent-500);
+  --blockquote-text-color: var(--text-secondary);
 }
 
-/* 编辑器内代码块容器（真实类名 _codeMirrorWrapper_eoiyl_*）：与阅读视图的代码块观感一致 */
-.rich-editor-shell .mdxeditor [class*="_codeMirrorWrapper"] {
+/* IR 未渲染完的 markdown 语法字符着色（浅色用 vditor 默认色系偏暗的变体） */
+.rich-editor-shell .vditor {
+  --ir-heading-color: var(--text-heading);
+  --ir-title-color: var(--text-muted);
+  --ir-bi-color: var(--accent-600);
+  --ir-link-color: var(--accent-600);
+  --ir-bracket-color: var(--text-tertiary);
+  --ir-paren-color: var(--text-tertiary);
+}
+
+html.dark .rich-editor-shell .vditor {
+  --panel-shadow: 0 4px 16px rgb(0 0 0 / 0.5);
+  --ir-bi-color: var(--accent-500, #70b8ff);
+  --ir-link-color: var(--accent-500, #70b8ff);
+  --ir-bracket-color: var(--text-tertiary);
+  --ir-paren-color: var(--text-tertiary);
+}
+
+.rich-editor-shell .vditor-toolbar {
+  border-bottom: 1px solid var(--border-default);
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+}
+
+.rich-editor-shell .vditor-toolbar__item svg {
+  width: 17px;
+  height: 17px;
+}
+
+/* 编辑区滚动容器：vditor 自身铺满高度（height:100%），内容在此滚动 */
+.rich-editor-shell .vditor-content {
+  overflow-y: auto;
+}
+
+/* 编辑正文排版与 docs-prose 对齐；底部 40vh 留白便于末行书写 */
+.rich-editor-shell .vditor-ir .vditor-reset,
+.rich-editor-shell .vditor-wysiwyg .vditor-reset {
+  /* vditor 默认让正文 pre 自滚（.vditor-reset { overflow:auto }），与本应用指定的
+     .vditor-content 滚动容器嵌套成双滚动条；这里只留外层一个滚动容器 */
+  overflow: visible;
+  box-sizing: content-box;
+  padding: 1.5rem 1.25rem 40vh;
+  font-size: var(--prose-font-size, 16px);
+  line-height: var(--prose-line-height, 1.75);
+  font-family: var(--prose-font-family, inherit);
+  color: var(--text-prose);
+  max-width: var(--content-max-width, none);
+  margin-inline: auto;
+}
+
+/* 标题/表格/代码块观感向阅读视图靠拢 */
+.rich-editor-shell .vditor-reset :is(h1, h2, h3, h4, h5, h6) {
+  color: var(--text-heading);
+  font-weight: 700;
+}
+
+.rich-editor-shell .vditor-reset table {
+  border-collapse: collapse;
+}
+
+.rich-editor-shell .vditor-reset th,
+.rich-editor-shell .vditor-reset td {
+  border: 1px solid var(--border-default);
+}
+
+.rich-editor-shell .vditor-reset th {
+  background: var(--bg-secondary);
+  font-weight: 600;
+}
+
+.rich-editor-shell .vditor-reset tr:nth-child(even) {
+  background: var(--bg-secondary);
+}
+
+.rich-editor-shell .vditor-reset blockquote {
+  border-left: 3px solid var(--accent-500);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+
+.rich-editor-shell .vditor-reset :not(pre) > code {
   background: var(--code-bg);
-  border-color: var(--code-border);
+  color: #d63384;
+  font-family: var(--mono-font-family, "SF Mono", Monaco, "Cascadia Code", Consolas, monospace);
+}
+
+html.dark .rich-editor-shell .vditor-reset :not(pre) > code {
+  color: #ff7b72;
+}
+
+.rich-editor-shell .vditor-reset pre {
+  background: var(--code-bg);
+  border: 1px solid var(--code-border);
   border-radius: var(--radius-md);
 }
 
-.rich-editor-shell .mdxeditor .cm-gutters {
-  background: transparent !important;
-  border-right: 1px solid var(--border-default) !important;
-  color: var(--text-muted) !important;
+.rich-editor-shell .vditor-reset pre > code {
+  font-family: var(--mono-font-family, "SF Mono", Monaco, "Cascadia Code", Consolas, monospace);
 }
 
-.rich-editor-shell .mdxeditor .cm-editor.cm-focused {
-  outline: none !important;
-}
-
-/* 工具栏与整体边框弱化，融入工作台 */
-.rich-editor-shell .mdxeditor {
-  border: none;
-}
-
-/* 源码/差异模式同样铺满并留出书写空间 */
-.rich-editor-shell .mdxeditor .cm-scroller {
-  padding-bottom: 30vh;
+/* SV（分屏源码）模式左栏同样留出书写空间 */
+.rich-editor-shell .vditor-sv {
+  padding: 1.5rem 1.25rem 40vh;
 }
 
 /* 浅色模式下 CodeMirror 语法高亮微调（同阅读区） */
@@ -699,84 +1035,6 @@ pre[class*="language-"] {
   font-weight: 700;
 }
 
-/* ===== MDXEditor 暗色主题修复 =====
-   其 style.css 内部：作用域亮色规则 "：root, ._light_xxx" 位于全局 ".dark" 规则之后，
-   会把 html.dark 上继承的调色板变量劫持回亮色（工具栏/正文颜色异常）。
-   用 html.dark（特异性 0,2,0 > :root 的 0,1,0）显式压制，值为官方暗色调色板。 */
-html.dark {
-  --blue-1: #0d1520;
-  --blue-2: #111927;
-  --blue-3: #0d2847;
-  --blue-4: #003362;
-  --blue-5: #004074;
-  --blue-6: #104d87;
-  --blue-7: #205d9e;
-  --blue-8: #2870bd;
-  --blue-9: #0090ff;
-  --blue-10: #3b9eff;
-  --blue-11: #70b8ff;
-  --blue-12: #c2e6ff;
-  --slate-1: #111113;
-  --slate-2: #18191b;
-  --slate-3: #212225;
-  --slate-4: #272a2d;
-  --slate-5: #2e3135;
-  --slate-6: #363a3f;
-  --slate-7: #43484e;
-  --slate-8: #5a6169;
-  --slate-9: #696e77;
-  --slate-10: #777b84;
-  --slate-11: #b0b4ba;
-  --slate-12: #edeef0;
-  --grass-1: #0e1511;
-  --grass-2: #141a15;
-  --grass-3: #1b2a1e;
-  --grass-4: #1d3a24;
-  --grass-5: #25482d;
-  --grass-6: #2d5736;
-  --grass-7: #366740;
-  --grass-8: #3e7949;
-  --grass-9: #46a758;
-  --grass-10: #53b365;
-  --grass-11: #71d083;
-  --grass-12: #c2f0c2;
-  --cyan-1: #0b161a;
-  --cyan-2: #101b20;
-  --cyan-3: #082c36;
-  --cyan-4: #003848;
-  --cyan-5: #004558;
-  --cyan-6: #045468;
-  --cyan-7: #12677e;
-  --cyan-8: #11809c;
-  --cyan-9: #00a2c7;
-  --cyan-10: #23afd0;
-  --cyan-11: #4ccce6;
-  --cyan-12: #b6ecf7;
-  --amber-1: #16120c;
-  --amber-2: #1d180f;
-  --amber-3: #302008;
-  --amber-4: #3f2700;
-  --amber-5: #4d3000;
-  --amber-6: #5c3d05;
-  --amber-7: #714f19;
-  --amber-8: #8f6424;
-  --amber-9: #ffc53d;
-  --amber-10: #ffd60a;
-  --amber-11: #ffca16;
-  --amber-12: #ffe7b3;
-  --red-1: #191111;
-  --red-2: #201314;
-  --red-3: #3b1219;
-  --red-4: #500f1c;
-  --red-5: #611623;
-  --red-6: #72232d;
-  --red-7: #8c333a;
-  --red-8: #b54548;
-  --red-9: #e5484d;
-  --red-10: #ec5d5e;
-  --red-11: #ff9592;
-  --red-12: #ffd1d9;
-}
 
 /* ===== 动效与 elevation 体系（IDE 风格） ===== */
 
@@ -836,6 +1094,56 @@ html.dark {
   border-radius: 10px;
 }
 
+/* 附件预览：Excel/CSV 只读表格（冻结表头与行号列） */
+.preview-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 12.5px;
+}
+.preview-table th,
+.preview-table td {
+  border-bottom: 1px solid var(--border-default);
+  border-right: 1px solid var(--border-default);
+  max-width: 320px;
+  overflow: hidden;
+  padding: 4px 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.preview-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+.preview-table .row-num {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--bg-secondary);
+  color: var(--text-tertiary);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.preview-table thead .row-num {
+  z-index: 3;
+}
+.preview-table tbody tr:hover td {
+  background: var(--bg-hover);
+}
+
+/* 附件预览：纯文本 */
+.preview-text {
+  font-family: var(--mono-font-family, "SF Mono", Monaco, "Cascadia Code", Consolas, monospace);
+  font-size: 12.5px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 /* 右键菜单：从点击处轻微展开 */
 .context-menu {
   animation: app-menu-in 130ms var(--ease-out-soft) both;
@@ -861,7 +1169,7 @@ html.dark {
 /* 悬停浮现元素统一节奏 */
 .grow-in { transition: opacity 140ms var(--ease-out-soft), transform 140ms var(--ease-out-soft); }
 
-/* cache-bust: 1792567404 */
+/* cache-bust: 1792866600 */
 
 /* ===== 外观设置开关（类名由 applyAppearance/初始化脚本挂到 <html> 上） ===== */
 
@@ -886,8 +1194,9 @@ html.glass-off .context-menu {
   background: var(--bg-card);
 }
 
-/* 编辑器：CodeMirror 代码块跟随等宽字体设置；正文走 docs-prose（contentEditableClassName）自动跟随 */
-.rich-editor-shell .mdxeditor .cm-content,
-.rich-editor-shell .mdxeditor .cm-gutters {
+/* 编辑器：代码块跟随等宽字体设置；正文走 .vditor-reset 的 prose 变量自动跟随 */
+.rich-editor-shell .vditor-reset pre > code,
+.rich-editor-shell .vditor-reset :not(pre) > code,
+.rich-editor-shell .vditor-sv textarea {
   font-family: var(--mono-font-family, "SF Mono", Monaco, "Cascadia Code", Consolas, monospace);
 }

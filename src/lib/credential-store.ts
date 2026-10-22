@@ -79,6 +79,16 @@ export interface PasswordChangeResult {
   error?: string;
 }
 
+/** 运维重置密码：跳过当前密码校验，直接落盘新哈希（供 scripts/reset-auth.ts 在忘记密码时使用） */
+export async function resetLoginPassword(newPassword: string): Promise<PasswordChangeResult> {
+  if (newPassword.length < PASSWORD_MIN || newPassword.length > PASSWORD_MAX) {
+    return { ok: false, error: `密码长度需在 ${PASSWORD_MIN}-${PASSWORD_MAX} 个字符之间` };
+  }
+  const salt = randomBytes(16).toString("hex");
+  await writeStored({ hash: hashPassword(newPassword, salt), salt });
+  return { ok: true };
+}
+
 /** 修改登录密码：校验当前密码正确、新密码合法后落盘新哈希 */
 export async function changeLoginPassword(currentPassword: string, newPassword: string): Promise<PasswordChangeResult> {
   if (!(await verifyLoginPassword(currentPassword))) {

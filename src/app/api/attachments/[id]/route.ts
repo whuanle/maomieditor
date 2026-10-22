@@ -2,8 +2,8 @@ import fs from "node:fs";
 import fsp from "node:fs/promises";
 import { Readable } from "node:stream";
 import { NextResponse } from "next/server";
-import { isNoteLocked } from "@/lib/note-guard";
-import { getAttachment, isValidId } from "@/lib/store";
+import { isNoteLocked, isTrashedNoteLocked } from "@/lib/note-guard";
+import { getAttachment, getTrashedAttachment, isValidId } from "@/lib/store";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -27,13 +27,14 @@ export async function GET(request: Request, context: RouteContext) {
     return NextResponse.json({ error: "附件 id 不合法" }, { status: 400 });
   }
 
-  const attachment = await getAttachment(id);
+  const active = await getAttachment(id);
+  const attachment = active ?? (await getTrashedAttachment(id));
   if (!attachment) {
     return NextResponse.json({ error: "附件不存在" }, { status: 404 });
   }
 
-  // 附件跟随属主笔记的保护状态：属主受保护且未解锁时不下发内容
-  if (await isNoteLocked(attachment.noteId)) {
+  // 附件跟随属主笔记的保护状态：属主受保护且未解锁时不下发内容（属主在回收站时沿 .trash 祖先链判定）
+  if (await (active ? isNoteLocked(attachment.noteId) : isTrashedNoteLocked(attachment.noteId))) {
     return NextResponse.json({ error: "所属文档已开启保护，请先解锁" }, { status: 403 });
   }
 

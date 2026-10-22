@@ -3,7 +3,7 @@
  * 配置存放于 .data/mfa.json——开启后登录需在密码之外输入 6 位动态验证码。
  * - secret：Base32 密钥（开启后用于每次登录校验；pendingSecret 为绑定流程中的待确认密钥）
  * - lastUsedStep：最近一次通过校验的时间步，防止同一个验证码在有效窗口内被重复使用
- * 忘记验证码且无法登录时，删除 .data/mfa.json 即可重置（回到仅密码登录）。
+ * 忘记验证码且无法登录时，运行 bun scripts/reset-auth.ts 重置（等价于清空 .data/mfa.json，回到仅密码登录）。
  */
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -116,6 +116,11 @@ export async function disableMfa(code: string): Promise<MfaResult> {
   }
   await writeConfig({});
   return { ok: true };
+}
+
+/** 运维重置：不校验验证码直接关闭两步验证（供 scripts/reset-auth.ts 在丢失验证器时使用） */
+export async function forceDisableMfa(): Promise<void> {
+  await writeConfig({});
 }
 
 /* ===== 登录挑战令牌 ===== */

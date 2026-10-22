@@ -21,7 +21,7 @@ export async function GET() {
   return withCacheCookie(NextResponse.json({ fresh, settings }), settings);
 }
 
-/** 保存设置（需已登录；PATCH 语义：theme / appearance 部分更新） */
+/** 保存设置（需已登录；PATCH 语义：theme / themePreset* / appearance 部分更新） */
 export async function POST(request: Request) {
   const store = await cookies();
   const session = await verifySessionToken(store.get(SESSION_COOKIE)?.value);
@@ -39,6 +39,8 @@ export async function POST(request: Request) {
   const appearance = (body.appearance ?? undefined) as Record<string, unknown> | undefined;
   const settings = await writeStoredSettings({
     theme: body.theme,
+    themePresetLight: body.themePresetLight,
+    themePresetDark: body.themePresetDark,
     appearance:
       appearance && typeof appearance === "object"
         ? (appearance as Parameters<typeof writeStoredSettings>[0]["appearance"])

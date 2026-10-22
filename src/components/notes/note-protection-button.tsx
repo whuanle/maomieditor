@@ -70,9 +70,7 @@ export function NoteProtectionButton({
       disabled={busy || protectedInherited}
       title={title}
       aria-pressed={locked}
-      className={`docs-button ${locked ? "text-[var(--accent-700)]!" : ""} ${
-        protectedInherited ? "cursor-not-allowed opacity-70" : ""
-      }`}
+      className={`docs-button ${locked ? "text-[var(--accent-700)]!" : ""}`}
     >
       {locked ? <Lock className="h-3.5 w-3.5" /> : <LockOpen className="h-3.5 w-3.5" />}
       <span className="hidden md:inline">{locked ? "已保护" : "保护"}</span>

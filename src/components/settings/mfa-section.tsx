@@ -74,7 +74,7 @@ export function MfaSection() {
 
       <div className="min-h-0 flex-1 overflow-y-auto pr-8 pb-10">
         <SettingsGroup title="两步验证">
-          <p className="px-1 py-3 text-[13px] leading-relaxed text-[var(--text-tertiary)]">
+          <p className="pr-1 py-3 text-[13px] leading-relaxed text-[var(--text-tertiary)]">
             开启后，登录需在密码之外输入验证器 App（如 Google Authenticator、Microsoft Authenticator、1Password）生成的 6 位动态验证码。
             若更换或丢失设备，可在服务器删除 .data/mfa.json 重置。
           </p>

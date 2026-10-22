@@ -161,23 +161,38 @@ export async function readBackup(name: string): Promise<Buffer> {
   return fs.readFile(requireValidName(name));
 }
 
-/** 校验 zip 内部条目：全部位于白名单顶层目录下、无路径穿越、确有笔记内容 */
+/**
+ * 校验 zip 内部条目：全部位于白名单顶层目录**之内**（notes/files/.trash 只能以目录
+ * 形态出现，顶层裸文件一律拒绝）、无路径穿越、notes 下确有 .md/.mdx 笔记文件。
+ * 根目录结构不对（多包了一层目录、塞了别的东西、没有笔记文件）的包全部拒绝，
+ * 防止格式不符的压缩包把 docs 覆盖成空库。
+ */
 function validateEntries(entries: string[]): void {
   if (entries.length === 0) {
     throw new Error("压缩包内没有文件，不是有效的备份");
   }
-  if (!entries.some((key) => /^notes\//.test(key))) {
-    throw new Error("压缩包内缺少 notes/ 目录，不是有效的备份");
-  }
+  const roots = [...new Set(entries.map((key) => key.split("/")[0]))];
+  const rootList = roots.join("、").slice(0, 80);
+
   for (const key of entries) {
     if (
       key.includes("\\") ||
       key.startsWith("/") ||
       key.split("/").some((segment) => segment === "" || segment === "." || segment === "..") ||
-      !RESTORE_ROOTS.some((root) => key === root || key.startsWith(`${root}/`))
+      !RESTORE_ROOTS.some((root) => key.startsWith(`${root}/`))
     ) {
-      throw new Error(`压缩包内包含不被允许的路径：${key.slice(0, 80)}`);
+      const hint =
+        roots.length === 1
+          ? "；压缩时可能多包了一层目录，请解压后把 notes（及 files）所在的这一层直接压缩"
+          : "";
+      throw new Error(`备份的根目录应为 notes / files / .trash，实际是：${rootList}${hint}`);
     }
+  }
+  if (!entries.some((key) => /^notes\//.test(key))) {
+    throw new Error(`压缩包内没有 notes 目录（实际根目录：${rootList}），不是有效的备份`);
+  }
+  if (!entries.some((key) => /^notes\/.+\.(md|mdx)$/i.test(key))) {
+    throw new Error("notes 目录里没有任何 .md/.mdx 笔记文件，恢复后将是空库，已拒绝");
   }
 }
 

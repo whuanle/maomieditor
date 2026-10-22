@@ -7,11 +7,11 @@ import { Eye, History } from "lucide-react";
 import { EditableTitle } from "./editable-title";
 import { NoteIconButton } from "./note-icon-button";
 import { NoteProtectionButton } from "./note-protection-button";
-import { TocSidebar } from "./toc-sidebar";
+import { TocSidebar, TocToggleButton } from "./toc-sidebar";
 import { refreshTree } from "./sidebar";
 import { VersionDialog } from "./version-dialog";
 
-// MDXEditor 不支持 SSR，必须客户端加载
+// Vditor 不支持 SSR，必须客户端加载
 const RichEditor = dynamic(() => import("./rich-editor"), {
   ssr: false,
   loading: () => (
@@ -184,6 +184,7 @@ export function NoteEditorPage({
             protectedEffective={protectedEffective}
             protectedInherited={protectedInherited}
           />
+          <TocToggleButton />
         </div>
       </div>
 
@@ -202,7 +203,7 @@ export function NoteEditorPage({
         </div>
         <TocSidebar
           title={title}
-          scrollSelector="#note-editor-scroll .mdxeditor-root-contenteditable, #note-editor-scroll .mdxeditor-source-editor"
+          scrollSelector="#note-editor-scroll .vditor-content"
         />
       </div>
 

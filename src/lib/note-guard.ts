@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { PROTECTION_COOKIE } from "./protection-shared";
 import { verifyProtectedSessionToken } from "./protection";
-import { getNoteProtection } from "./store";
+import { getNoteProtection, getTrashedProtection } from "./store";
 
 /**
  * 笔记级保护门禁（服务端专用）：
@@ -10,6 +10,17 @@ import { getNoteProtection } from "./store";
  */
 export async function isNoteLocked(noteId: string): Promise<boolean> {
   const protection = await getNoteProtection(noteId);
+  if (!protection || !(protection.self || protection.inherited)) {
+    return false;
+  }
+  const store = await cookies();
+  const session = await verifyProtectedSessionToken(store.get(PROTECTION_COOKIE)?.value);
+  return !session;
+}
+
+/** 回收站预览的同款门禁：祖先链沿 .trash 内的 parent 走（父级已恢复则接活动树） */
+export async function isTrashedNoteLocked(noteId: string): Promise<boolean> {
+  const protection = await getTrashedProtection(noteId);
   if (!protection || !(protection.self || protection.inherited)) {
     return false;
   }

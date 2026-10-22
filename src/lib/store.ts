@@ -413,6 +413,12 @@ async function doRescan(): Promise<void> {
       attIndex.set(att.id, { noteId: rec.id, meta: att });
     }
   }
+
+  for (const id of searchTextCache.keys()) {
+    if (!nextRecords.has(id)) {
+      searchTextCache.delete(id); // 已删除/收编改名的笔记不留旧正文缓存
+    }
+  }
 }
 
 async function refresh(): Promise<void> {
@@ -673,6 +679,108 @@ export async function readNote(id: string): Promise<string | null> {
   } catch {
     return null;
   }
+}
+
+// ---------------------------------------------------------------------------
+// 正文检索：按 mtime/size 缓存去 frontmatter 的正文，关键词 AND、忽略大小写
+// ---------------------------------------------------------------------------
+
+interface SearchTextEntry {
+  mtimeMs: number;
+  size: number;
+  text: string;
+  lower: string;
+}
+
+const searchTextCache = new Map<string, SearchTextEntry>();
+
+/** 笔记正文纯文本（frontmatter 不参与检索）；缓存有效性跟随 cachedStats 的 stat 快照 */
+async function searchableText(rec: NoteRecord): Promise<SearchTextEntry> {
+  const stat = cachedStats.get(rec.absolute);
+  const cached = searchTextCache.get(rec.id);
+  if (cached && stat && cached.mtimeMs === stat.mtimeMs && cached.size === stat.size) {
+    return cached;
+  }
+  let text = "";
+  try {
+    text = matter(await fs.readFile(rec.absolute, "utf8")).content;
+  } catch {
+    return { mtimeMs: 0, size: 0, text: "", lower: "" };
+  }
+  const entry: SearchTextEntry = {
+    mtimeMs: stat?.mtimeMs ?? 0,
+    size: stat?.size ?? 0,
+    text,
+    lower: text.toLowerCase(),
+  };
+  searchTextCache.set(rec.id, entry);
+  return entry;
+}
+
+/** 取第一个关键词前后的上下文做命中片段；压缩空白，越界补省略号 */
+function buildContentSnippet(text: string, lower: string, terms: string[]): string {
+  let index = -1;
+  for (const term of terms) {
+    const at = lower.indexOf(term);
+    if (at >= 0 && (index < 0 || at < index)) {
+      index = at;
+    }
+  }
+  if (index < 0) {
+    index = 0;
+  }
+  const start = Math.max(0, index - 30);
+  const end = Math.min(text.length, index + 90);
+  let snippet = text.slice(start, end).replace(/\s+/g, " ").trim();
+  if (start > 0) {
+    snippet = `…${snippet}`;
+  }
+  if (end < text.length) {
+    snippet = `${snippet}…`;
+  }
+  return snippet;
+}
+
+export interface NoteSearchHit {
+  id: string;
+  title: string;
+  /** 命中上下文片段（对齐到第一个关键词） */
+  snippet: string;
+}
+
+/**
+ * 正文关键词检索：全部关键词 AND、不区分大小写，最多返回 limit 条。
+ * protectedUnlocked=false 时跳过受保护笔记（含继承保护），避免未解锁会话泄露正文；
+ * 标题命中不在这里返回，由前端本地过滤负责。
+ */
+export async function searchNotes(
+  query: string,
+  opts: { protectedUnlocked: boolean; limit?: number }
+): Promise<NoteSearchHit[]> {
+  const terms = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  if (terms.length === 0) {
+    return [];
+  }
+  const limit = opts.limit ?? 100;
+  const all = await getRecords();
+  const hits: NoteSearchHit[] = [];
+  for (const rec of all.values()) {
+    if (!opts.protectedUnlocked) {
+      const prot = effectiveProtected(rec, all);
+      if (prot.self || prot.inherited) {
+        continue;
+      }
+    }
+    const entry = await searchableText(rec);
+    if (!entry.lower || !terms.every((term) => entry.lower.includes(term))) {
+      continue;
+    }
+    hits.push({ id: rec.id, title: fallbackTitle(rec), snippet: buildContentSnippet(entry.text, entry.lower, terms) });
+    if (hits.length >= limit) {
+      break;
+    }
+  }
+  return hits;
 }
 
 /** 修改旁挂 yaml 元数据（正文 md 一个字节都不动） */
@@ -1016,6 +1124,8 @@ interface TrashRecord {
   absolute: string;
   /** 回收站里的旁挂 yaml */
   sidecar: string;
+  /** yaml 原文解析出的完整元数据（含 icon/protected/attachments） */
+  meta: Partial<SidecarMeta>;
 }
 
 async function scanTrash(): Promise<Map<string, TrashRecord>> {
@@ -1067,6 +1177,7 @@ async function scanTrash(): Promise<Map<string, TrashRecord>> {
           parent: isValidId(meta.parent) ? meta.parent : null,
           absolute: mdPath,
           sidecar: absolute,
+          meta: loaded as Partial<SidecarMeta>,
         });
       } catch {
         // 解析失败的文件跳过
@@ -1075,6 +1186,134 @@ async function scanTrash(): Promise<Map<string, TrashRecord>> {
   };
   await visit(TRASH_NOTES_DIR);
   return result;
+}
+
+/** scanTrash 的短缓存：回收站预览一次渲染会并发拉取多张图片，避免每个附件请求都全量扫 .trash */
+let trashScanCache: { at: number; promise: Promise<Map<string, TrashRecord>> } | null = null;
+
+function scanTrashCached(): Promise<Map<string, TrashRecord>> {
+  if (trashScanCache && Date.now() - trashScanCache.at < 5_000) {
+    return trashScanCache.promise;
+  }
+  const promise = scanTrash().catch((error: unknown) => {
+    trashScanCache = null;
+    throw error;
+  });
+  trashScanCache = { at: Date.now(), promise };
+  return promise;
+}
+
+function invalidateTrashCache(): void {
+  trashScanCache = null;
+}
+
+export interface TrashedNoteView {
+  id: string;
+  format: NoteFormat;
+  title: string;
+  icon: string;
+  deletedAt: string;
+  /** 回收站里的正文内容；文件缺失时为 null */
+  content: string | null;
+}
+
+/** 读取回收站内某篇笔记（预览用）；不在回收站返回 null */
+export async function getTrashedNote(id: string): Promise<TrashedNoteView | null> {
+  if (!isValidId(id)) {
+    return null;
+  }
+  const trash = await scanTrashCached();
+  const rec = trash.get(id);
+  if (!rec) {
+    return null;
+  }
+  let content: string | null = null;
+  try {
+    content = await fs.readFile(rec.absolute, "utf8");
+  } catch {
+    // 正文缺失仍返回视图（标题/时间可用）
+  }
+  return {
+    id,
+    format: rec.format,
+    title: rec.title,
+    icon: typeof rec.meta.icon === "string" ? rec.meta.icon : "",
+    deletedAt: rec.deletedAt,
+    content,
+  };
+}
+
+/** 回收站内某附件的引用（属主也在回收站）；找不到返回 null，供附件路由回退到 .trash/files */
+export async function getTrashedAttachment(id: string): Promise<AttachmentRef | null> {
+  if (!isValidId(id)) {
+    return null;
+  }
+  const trash = await scanTrashCached();
+  for (const rec of trash.values()) {
+    if (!Array.isArray(rec.meta.attachments)) {
+      continue;
+    }
+    for (const att of rec.meta.attachments) {
+      if (!att || !isValidId(att.id) || att.id !== id) {
+        continue;
+      }
+      const ext = typeof att.ext === "string" ? att.ext.replace(/[^a-z0-9]/gi, "").toLowerCase() : "";
+      const absolute = path.join(TRASH_FILES_DIR, id.slice(0, 2), `${id}${ext ? `.${ext}` : ""}`);
+      try {
+        const stat = await fs.stat(absolute);
+        if (!stat.isFile()) {
+          continue;
+        }
+      } catch {
+        continue;
+      }
+      return {
+        id,
+        name: typeof att.name === "string" && att.name ? att.name : `${id}${ext ? `.${ext}` : ""}`,
+        size: typeof att.size === "number" ? att.size : 0,
+        mime: typeof att.mime === "string" ? att.mime : "application/octet-stream",
+        ext,
+        inline: att.inline === true,
+        noteId: rec.id,
+        absolute,
+      };
+    }
+  }
+  return null;
+}
+
+/**
+ * 回收站内笔记的有效保护（预览门禁用）：祖先链在回收站内沿 trash parent 走，
+ * 父级已恢复回活动区时（混合链）用活动树的有效保护；不在回收站返回 null。
+ */
+export async function getTrashedProtection(id: string): Promise<{ self: boolean; inherited: boolean } | null> {
+  const trash = await scanTrashCached();
+  const rec = trash.get(id);
+  if (!rec) {
+    return null;
+  }
+  let inherited = false;
+  let cursor: string | null = rec.parent;
+  const seen = new Set<string>([id]);
+  while (cursor && !seen.has(cursor)) {
+    seen.add(cursor);
+    const parentRec = trash.get(cursor);
+    if (parentRec) {
+      if (parentRec.meta.protected === true) {
+        inherited = true;
+        break;
+      }
+      cursor = parentRec.parent;
+      continue;
+    }
+    // 父级不在回收站：链回到活动区，交给活动树的有效保护判断
+    const prot = await getNoteProtection(cursor);
+    if (prot && (prot.self || prot.inherited)) {
+      inherited = true;
+    }
+    break;
+  }
+  return { self: rec.meta.protected === true, inherited };
 }
 
 export interface TrashItem {
@@ -1089,7 +1328,7 @@ export interface TrashItem {
 }
 
 export async function listTrash(): Promise<TrashItem[]> {
-  const trash = await scanTrash();
+  const trash = await scanTrashCached();
   const active = await getRecords();
   const byParent = new Map<string, number>();
   for (const item of trash.values()) {
@@ -1170,6 +1409,7 @@ async function removeBackupFiles(dir: string, noteId: string): Promise<void> {
 
 /** 软删除：笔记及其后代、附件移入回收站（不真正删除文件，同步语义上是一次移动） */
 export async function trashNote(id: string): Promise<number> {
+  invalidateTrashCache();
   const subtree = await collectSubtreeNoteIds(id);
   if (!subtree) {
     throw new Error("笔记不存在");
@@ -1192,6 +1432,7 @@ export async function trashNote(id: string): Promise<number> {
       serializeSidecar({
         id: rec.id,
         title: rec.title,
+        icon: rec.icon,
         parent: rec.parent,
         order: rec.order,
         protected: rec.protected,
@@ -1217,12 +1458,14 @@ export async function trashNote(id: string): Promise<number> {
   for (const dir of emptiedDirs) {
     await fs.rmdir(dir).catch(() => undefined);
   }
+  invalidateTrashCache();
   await refresh();
   return subtree.size;
 }
 
 /** 从回收站恢复：id 及其在回收站内的全部后代回到原位置（父笔记已不存在则挂到根级并标记孤儿） */
 export async function restoreNote(id: string): Promise<number> {
+  invalidateTrashCache();
   const trash = await scanTrash();
   const subtree = collectTrashSubtree(trash, id);
   if (!subtree) {
@@ -1272,12 +1515,14 @@ export async function restoreNote(id: string): Promise<number> {
   for (const dir of emptiedDirs) {
     await fs.rmdir(dir).catch(() => undefined);
   }
+  invalidateTrashCache();
   await refresh();
   return subtree.size;
 }
 
 /** 彻底删除回收站内某笔记及其后代（不可恢复） */
 export async function purgeNote(id: string): Promise<number> {
+  invalidateTrashCache();
   const trash = await scanTrash();
   const subtree = collectTrashSubtree(trash, id);
   if (!subtree) {
@@ -1303,13 +1548,16 @@ export async function purgeNote(id: string): Promise<number> {
     await removeBackupFiles(path.dirname(rec.absolute), noteId);
     await fs.rmdir(path.dirname(rec.absolute)).catch(() => undefined);
   }
+  invalidateTrashCache();
   await refresh();
   return subtree.size;
 }
 
 /** 清空回收站 */
 export async function emptyTrash(): Promise<void> {
+  invalidateTrashCache();
   await fs.rm(path.join(DOCS_ROOT, ".trash"), { recursive: true, force: true });
+  invalidateTrashCache();
   await refresh();
 }
 

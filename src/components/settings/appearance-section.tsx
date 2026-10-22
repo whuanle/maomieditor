@@ -1,6 +1,6 @@
 "use client";
 
-import { RotateCcw } from "lucide-react";
+import { Check, RotateCcw } from "lucide-react";
 import {
   CONTENT_WIDTH_OPTIONS,
   LINE_HEIGHT_OPTIONS,
@@ -11,37 +11,31 @@ import {
   type AppearanceSettings,
 } from "@/lib/appearance";
 import { useSettings } from "@/components/settings-context";
-import type { ThemeMode } from "@/lib/settings-shared";
+import { THEME_PRESETS, type ThemeMode, type ThemePreset } from "@/lib/settings-shared";
 import { Segmented, SettingsGroup, SettingsRow, Toggle } from "./settings-ui";
 
-/** 外观设置：字体 / 正文排版 / 内容宽度 / 界面缩放与动效（参考 Trilium），改动即时生效并落盘到服务端 */
+/** 外观设置：主题 / 字体 / 正文排版 / 内容宽度 / 界面缩放与动效（参考 Trilium），改动即时生效并落盘到服务端 */
 export function AppearanceSection() {
-  const { settings, setTheme, updateAppearance, resetAppearance } = useSettings();
+  const { settings, setTheme, setThemePreset, updateAppearance, resetAppearance, resolvedTheme, resolvedPreset } =
+    useSettings();
   const appearance = settings.appearance;
 
   function update(patch: Partial<AppearanceSettings>) {
     updateAppearance(patch);
   }
 
-  function resetDefaults() {
-    resetAppearance();
-    setTheme("system");
-  }
-
-  const themeMode = settings.theme;
-
   return (
     <div className="flex h-full max-w-3xl flex-col py-8 pl-8 pr-2">
       <div className="flex items-center justify-between border-b border-[var(--border-default)] pr-8 pb-4">
         <div className="min-w-0">
           <h1 className="text-[17px] font-semibold text-[var(--text-heading)]">外观</h1>
-          <p className="mt-0.5 text-[13px] text-[var(--text-tertiary)]">定制界面与文档渲染：字体、排版、内容宽度与动效。</p>
+          <p className="mt-0.5 text-[13px] text-[var(--text-tertiary)]">定制界面与文档渲染：主题配色、字体、排版、内容宽度与动效。</p>
         </div>
         <button
           type="button"
-          onClick={resetDefaults}
+          onClick={resetAppearance}
           className="docs-button flex shrink-0 items-center gap-1.5"
-          title="恢复全部外观设置为默认值"
+          title="恢复全部外观设置为默认值（含配色模式与主题）"
         >
           <RotateCcw className="h-3.5 w-3.5" />
           恢复默认
@@ -57,10 +51,41 @@ export function AppearanceSection() {
                 { key: "light", label: "浅色" },
                 { key: "dark", label: "深色" },
               ]}
-              value={themeMode}
+              value={settings.theme}
               onChange={(key) => setTheme(key as ThemeMode)}
             />
           </SettingsRow>
+          <div className="py-4">
+            <p className="text-[13px] leading-relaxed text-[var(--text-tertiary)]">
+              内置主题包含背景与强调色整套配色。跟随系统时，昼 / 夜会分别套用你在浅色、深色下选中的主题。
+            </p>
+            <div className="mt-3 space-y-4">
+              {(["light", "dark"] as const).map((family) => (
+                <div key={family}>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-[13px] font-medium text-[var(--text-secondary)]">
+                      {family === "light" ? "浅色主题" : "深色主题"}
+                    </h3>
+                    {resolvedTheme === family && (
+                      <span className="rounded-full bg-[var(--accent-100)] px-1.5 py-px text-[11px] text-[var(--accent-700)]">
+                        当前
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-2 grid grid-cols-4 gap-2.5">
+                    {THEME_PRESETS.filter((preset) => preset.family === family).map((preset) => (
+                      <ThemePresetCard
+                        key={preset.key}
+                        preset={preset}
+                        active={resolvedPreset === preset.key}
+                        onSelect={setThemePreset}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </SettingsGroup>
 
         <SettingsGroup title="字体">
@@ -112,7 +137,7 @@ export function AppearanceSection() {
         </SettingsGroup>
 
         <SettingsGroup title="内容宽度">
-          <p className="px-1 pb-3 text-[13px] leading-relaxed text-[var(--text-tertiary)]">
+          <p className="pr-1 pb-3 text-[13px] leading-relaxed text-[var(--text-tertiary)]">
             限制正文最大宽度可以提高宽屏阅读的可读性；也可以保持内容居中对齐。
           </p>
           <SettingsRow label="内容最大宽度" description="正文阅读与编辑区域的上限">
@@ -151,6 +176,51 @@ export function AppearanceSection() {
         </SettingsGroup>
       </div>
     </div>
+  );
+}
+
+/* ===== 主题预设卡片：迷你界面预览 + 选中高亮（参考 WorkBuddy 主题网格） ===== */
+
+function ThemePresetCard({
+  preset,
+  active,
+  onSelect,
+}: {
+  preset: ThemePreset;
+  active: boolean;
+  onSelect: (key: string) => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(preset.key)}
+      aria-pressed={active}
+      title={`${preset.label}${active ? "（当前主题）" : ""}`}
+      className={`flex flex-col gap-1.5 rounded-lg border p-2 transition-colors ${
+        active
+          ? "border-[var(--accent-500)] ring-1 ring-[var(--accent-500)]"
+          : "border-[var(--border-default)] hover:border-[var(--border-strong)]"
+      }`}
+    >
+      <div
+        className="flex h-[60px] overflow-hidden rounded-[5px] border"
+        style={{ borderColor: preset.colors.border, background: preset.colors.bgPrimary }}
+      >
+        <div
+          className="w-[30%] border-r"
+          style={{ background: preset.colors.bgSidebar, borderColor: preset.colors.border }}
+        />
+        <div className="flex flex-1 flex-col gap-[5px] p-2">
+          <div className="h-[6px] w-2/3 rounded-full" style={{ background: preset.colors.accent }} />
+          <div className="h-[5px] w-full rounded-full" style={{ background: preset.colors.text, opacity: 0.45 }} />
+          <div className="h-[5px] w-4/5 rounded-full" style={{ background: preset.colors.text, opacity: 0.3 }} />
+        </div>
+      </div>
+      <span className="flex items-center justify-between text-[13px] text-[var(--text-primary)]">
+        {preset.label}
+        {active && <Check className="h-3.5 w-3.5 text-[var(--accent-600)]" />}
+      </span>
+    </button>
   );
 }
 

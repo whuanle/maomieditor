@@ -2,10 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { SettingsOverlay } from "@/components/settings/settings-overlay";
+import { AttachmentPreviewHost } from "./attachment-preview";
 import { NoteSidebar } from "./sidebar";
 import { NotesProvider } from "./notes-context";
 import { ProtectionKeepAlive } from "./protection-keepalive";
 import { TabBar } from "./tab-bar";
+import { TrashPage } from "./trash-page";
 
 const STORAGE_KEY = "notes-sidebar-width";
 const MIN_WIDTH = 200;
@@ -18,6 +20,7 @@ export function NotesShell({ children }: { children: ReactNode }) {
   const [viewportWidth, setViewportWidth] = useState(0);
   const [dragging, setDragging] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [trashOpen, setTrashOpen] = useState(false);
   const widthRef = useRef(width);
 
   useEffect(() => {
@@ -64,7 +67,7 @@ export function NotesShell({ children }: { children: ReactNode }) {
     <NotesProvider>
       <ProtectionKeepAlive />
       <div className="flex h-screen overflow-hidden bg-[var(--bg-primary)]">
-        <NoteSidebar width={effectiveWidth} onOpenSettings={() => setSettingsOpen(true)} />
+        <NoteSidebar width={effectiveWidth} onOpenSettings={() => setSettingsOpen(true)} onOpenTrash={() => setTrashOpen(true)} />
         <div
           role="separator"
           aria-orientation="vertical"
@@ -86,6 +89,9 @@ export function NotesShell({ children }: { children: ReactNode }) {
       </div>
 
       {settingsOpen && <SettingsOverlay onClose={() => setSettingsOpen(false)} />}
+      {trashOpen && <TrashPage onClose={() => setTrashOpen(false)} />}
+
+      <AttachmentPreviewHost />
     </NotesProvider>
   );
 }
