@@ -96,7 +96,7 @@ export async function getRsaPublicKeyPem(): Promise<string> {
 
 /* ===== 信封解密 ===== */
 
-export interface RsaEnvelope {
+export interface RsaEnvelopeV1 {
   __rsa: 1;
   /** base64：RSA-OAEP(SHA-256) 加密后的 AES-256 密钥 */
   k: string;
@@ -106,30 +106,58 @@ export interface RsaEnvelope {
   d: string;
 }
 
+export interface RsaEnvelopeV2 {
+  __rsa: 2;
+  /** 非安全上下文（HTTP）的 jsencrypt 路径：每块为 RSA PKCS#1 v1.5 密文 base64，按序拼接即明文 */
+  d: string[];
+}
+
+export type RsaEnvelope = RsaEnvelopeV1 | RsaEnvelopeV2;
+
 export function isRsaEnvelope(value: unknown): value is RsaEnvelope {
   if (!value || typeof value !== "object") {
     return false;
   }
   const v = value as Record<string, unknown>;
-  return v.__rsa === 1 && typeof v.k === "string" && typeof v.i === "string" && typeof v.d === "string";
+  if (v.__rsa === 1) {
+    return typeof v.k === "string" && typeof v.i === "string" && typeof v.d === "string";
+  }
+  if (v.__rsa === 2) {
+    return Array.isArray(v.d) && v.d.every((item) => typeof item === "string" && item.length > 0);
+  }
+  return false;
+}
+
+function decryptV1(keys: LoadedKeys, envelope: RsaEnvelopeV1): string | null {
+  const aesKey = privateDecrypt(
+    { key: keys.privateKey, padding: constants.RSA_PKCS1_OAEP_PADDING, oaepHash: "sha256" },
+    Buffer.from(envelope.k, "base64")
+  );
+  const data = Buffer.from(envelope.d, "base64");
+  if (data.length < 16) {
+    return null;
+  }
+  const decipher = createDecipheriv("aes-256-gcm", aesKey, Buffer.from(envelope.i, "base64"));
+  decipher.setAuthTag(data.subarray(data.length - 16));
+  const plaintext = Buffer.concat([decipher.update(data.subarray(0, data.length - 16)), decipher.final()]);
+  return plaintext.toString("utf-8");
+}
+
+function decryptV2(keys: LoadedKeys, envelope: RsaEnvelopeV2): string | null {
+  const parts = envelope.d.map((part) =>
+    privateDecrypt(
+      { key: keys.privateKey, padding: constants.RSA_PKCS1_PADDING },
+      Buffer.from(part, "base64")
+    )
+  );
+  return Buffer.concat(parts).toString("utf-8");
 }
 
 /** 解密信封 → UTF-8 明文；任何一步失败返回 null（不抛错，调用方按请求非法处理） */
 export async function decryptRsaEnvelope(envelope: RsaEnvelope): Promise<string | null> {
   try {
-    const { privateKey } = await loadKeys();
-    const aesKey = privateDecrypt(
-      { key: privateKey, padding: constants.RSA_PKCS1_OAEP_PADDING, oaepHash: "sha256" },
-      Buffer.from(envelope.k, "base64")
-    );
-    const data = Buffer.from(envelope.d, "base64");
-    if (data.length < 16) {
-      return null;
-    }
-    const decipher = createDecipheriv("aes-256-gcm", aesKey, Buffer.from(envelope.i, "base64"));
-    decipher.setAuthTag(data.subarray(data.length - 16));
-    const plaintext = Buffer.concat([decipher.update(data.subarray(0, data.length - 16)), decipher.final()]);
-    return plaintext.toString("utf-8");
+    const keys = await loadKeys();
+    return envelope.__rsa === 1 ? decryptV1(keys, envelope) : decryptV2(keys, envelope);
   } catch {
     return null;
   }
