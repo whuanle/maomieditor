@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { BACKUP_FILE_RE, NOTES_DIR, readNote, writeNote, getNote } from "./store";
+import { BACKUP_FILE_RE, NOTES_DIR, readNote, writeNote, getNote, notifyDocsChanged } from "./store";
 
 /**
  * 笔记历史版本：与笔记同目录的完整快照文件 {noteId}_delete_{毫秒时间戳}.{md|mdx}
@@ -89,6 +89,7 @@ export async function backupVersion(noteId: string): Promise<BackupResult> {
     ts += 1;
   }
   await fs.writeFile(path.join(dirOf(noteId), `${noteId}_delete_${ts}.${format}`), content, "utf8");
+  notifyDocsChanged();
   return { ts, size: Buffer.byteLength(content, "utf8"), skipped: false };
 }
 
@@ -135,9 +136,14 @@ export async function restoreVersion(noteId: string, ts: number): Promise<void> 
 }
 
 export async function deleteVersion(noteId: string, ts: number): Promise<void> {
+  let removed = false;
   for (const { file } of await listBackupFiles(noteId)) {
     if (file.includes(`_delete_${ts}.`)) {
       await fs.rm(path.join(dirOf(noteId), file), { force: true });
+      removed = true;
     }
+  }
+  if (removed) {
+    notifyDocsChanged();
   }
 }

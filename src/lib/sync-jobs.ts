@@ -47,13 +47,22 @@ export async function createSyncJob(mode: SyncMode): Promise<JobRecord> {
   return (await getActiveSyncJob()) ?? createJob({ type: "sync", label: MODE_LABELS[mode], params: { mode } });
 }
 
-/** 自动推送入口（watcher 调用）：未启用同步时静默跳过，失败记录在任务里 */
-export async function enqueueAutoSync(): Promise<void> {
+/**
+ * 自动推送入口（auto-sync 的变更信号调用）：未启用同步时静默跳过。
+ * 返回 false 表示已有同步任务在排队/运行、本次请求被其吸收——调用方应在任务
+ * 结束后重试，否则任务运行期间落盘的变更会漏推送（任务起来时的枚举不含它们）。
+ */
+export async function enqueueAutoSync(): Promise<boolean> {
   const config = await readSyncConfig();
   if (!s3Configured(config.s3) || !config.s3!.enabled) {
-    return;
+    return true; // 未启用：无事可做，也无需重试
   }
-  await createSyncJob("auto").catch((error) => {
+  if (await getActiveSyncJob()) {
+    return false; // 已有任务在跑，不重复排队；由调用方稍后补推
+  }
+  registerSyncJobHandlers();
+  await createJob({ type: "sync", label: MODE_LABELS.auto, params: { mode: "auto" } }).catch((error) => {
     console.warn("[sync] 自动推送任务创建失败：", error instanceof Error ? error.message : error);
   });
+  return true;
 }

@@ -5,7 +5,7 @@ import { decryptSecretField } from "@/lib/rsa";
 import { isSyncing, testS3Connection } from "@/lib/sync-engine";
 import { getActiveSyncJob } from "@/lib/sync-jobs";
 import type { JobRecord } from "@/lib/job-queue";
-import { kickAutoSync } from "@/lib/sync-watcher";
+import { kickAutoSync } from "@/lib/auto-sync";
 import {
   normalizePrefix,
   readSyncConfig,

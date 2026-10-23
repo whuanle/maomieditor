@@ -432,6 +432,37 @@ async function getRecords(): Promise<Map<string, NoteRecord>> {
 }
 
 // ---------------------------------------------------------------------------
+// 文档变更通知：所有写操作（store 内部 + versions/backup 的直接改写）成功后触发，
+// 供自动推送等订阅方感知。同步触发不监听文件系统——文档只会经界面/API 变更，
+// 在变更源头通知比 fs.watch 递归监听整个 docs/ 轻量得多（数千文档时监听本身就很贵）。
+// 订阅方不得同步做重活（自动推送是防抖 + 后台任务）；也不能反向 import store
+// 依赖链上的模块（sync-engine → store，这里只回调不引用）。
+//
+// 钩子集合必须挂 globalThis：instrumentation 与 API 路由可能各持一份 store 模块
+// 副本（独立 bundle），模块级 Set 会导致「装配在 A 副本、触发在 B 副本」信号丢失。
+// ---------------------------------------------------------------------------
+
+const hooksGlobal = globalThis as typeof globalThis & { __docsChangedHooks?: Set<() => void> };
+const docsChangedHooks = (hooksGlobal.__docsChangedHooks ??= new Set<() => void>());
+
+/** 订阅文档变更信号，返回取消订阅函数。服务启动时由 instrumentation 装配 */
+export function onDocsChanged(hook: () => void): () => void {
+  docsChangedHooks.add(hook);
+  return () => docsChangedHooks.delete(hook);
+}
+
+/** 发出变更信号。store 的写函数自动调用；versions/backup 直接改写 docs 后也需调用 */
+export function notifyDocsChanged(): void {
+  for (const hook of docsChangedHooks) {
+    try {
+      hook();
+    } catch {
+      // 订阅方异常不阻塞写操作本身
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
 // 树聚合
 // ---------------------------------------------------------------------------
 
@@ -805,6 +836,7 @@ async function mutateNoteMeta(id: string, mutate: (meta: SidecarMeta) => void): 
   }
   await fs.writeFile(rec.sidecar, serializeSidecar(meta), "utf8");
   await refresh();
+  notifyDocsChanged();
   return records.get(id) ?? rec;
 }
 
@@ -828,6 +860,7 @@ export async function writeNote(id: string, content: string): Promise<void> {
   }
   await fs.writeFile(rec.absolute, content, "utf8");
   await refresh();
+  notifyDocsChanged();
 }
 
 function siblingOrders(all: Map<string, NoteRecord>, parent: string | null): number[] {
@@ -880,6 +913,7 @@ export async function createNote(opts: {
     "utf8"
   );
   await refresh();
+  notifyDocsChanged();
   return recordToNode(records.get(id)!);
 }
 
@@ -913,6 +947,7 @@ export async function importNote(opts: {
     "utf8"
   );
   await refresh();
+  notifyDocsChanged();
   return recordToNode(records.get(id)!);
 }
 
@@ -1460,6 +1495,7 @@ export async function trashNote(id: string): Promise<number> {
   }
   invalidateTrashCache();
   await refresh();
+  notifyDocsChanged();
   return subtree.size;
 }
 
@@ -1517,6 +1553,7 @@ export async function restoreNote(id: string): Promise<number> {
   }
   invalidateTrashCache();
   await refresh();
+  notifyDocsChanged();
   return subtree.size;
 }
 
@@ -1550,6 +1587,7 @@ export async function purgeNote(id: string): Promise<number> {
   }
   invalidateTrashCache();
   await refresh();
+  notifyDocsChanged();
   return subtree.size;
 }
 
@@ -1559,6 +1597,7 @@ export async function emptyTrash(): Promise<void> {
   await fs.rm(path.join(DOCS_ROOT, ".trash"), { recursive: true, force: true });
   invalidateTrashCache();
   await refresh();
+  notifyDocsChanged();
 }
 
 // ---------------------------------------------------------------------------

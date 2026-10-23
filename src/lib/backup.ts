@@ -3,6 +3,7 @@ import type { Dirent } from "node:fs";
 import path from "node:path";
 import { zipSync, unzipSync, type Zippable } from "fflate";
 import { DOCS_ROOT } from "./paths";
+import { notifyDocsChanged } from "./store";
 
 /**
  * 整库备份（设置→备份分区）：把 docs/ 全部内容打包成 zip 存放在 .data/backups/。
@@ -229,5 +230,6 @@ export async function restoreFromZip(buffer: Buffer): Promise<RestoreResult> {
     await fs.rm(tempRoot, { recursive: true, force: true });
   }
 
+  notifyDocsChanged(); // docs 已被整体替换，订阅方（自动推送等）需要全量感知
   return { noteFiles: fileKeys.filter((key) => /^notes\/.+\.(md|mdx)$/i.test(key)).length };
 }
