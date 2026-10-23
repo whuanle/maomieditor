@@ -110,7 +110,7 @@ export function TabBar() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { tree, tabs, tabsReady, openTab, setTabEdit, closeTab, closeTabs, closeAllTabs } = useNotes();
+  const { tree, tabs, tabsReady, openTab, closeTab, closeTabs, closeAllTabs } = useNotes();
   const [menu, setMenu] = useState<TabMenuState | null>(null);
 
   const activeId = useMemo(() => {
@@ -121,15 +121,15 @@ export function TabBar() {
     return /^[0-9a-f]{12}$/.test(id) ? id : "";
   }, [pathname]);
 
+  // 编辑态是全局的：当前页 URL 的 ?edit=1 决定所有标签的编辑状态（点编辑全部进入，退出全部退出）
   const editing = searchParams.get("edit") === "1";
 
-  // 恢复完成后再响应导航：任何进入笔记页的导航都确保标签存在，并同步编辑态标记
+  // 恢复完成后再响应导航：任何进入笔记页的导航都确保标签存在
   useEffect(() => {
     if (activeId && tabsReady) {
       openTab(activeId);
-      setTabEdit(activeId, editing);
     }
-  }, [activeId, editing, tabsReady, openTab, setTabEdit]);
+  }, [activeId, tabsReady, openTab]);
 
   const titleMap = useMemo(() => {
     const map = new Map<string, { title: string; type: string; icon?: string }>();
@@ -142,7 +142,7 @@ export function TabBar() {
   function handleClose(id: string) {
     const neighbor = closeTab(id);
     if (id === activeId) {
-      router.push(neighbor ? tabUrl(neighbor.id, neighbor.edit) : "/notes");
+      router.push(neighbor ? tabUrl(neighbor.id, editing) : "/notes");
     }
   }
 
@@ -176,7 +176,7 @@ export function TabBar() {
     const remaining = closeTabs(target.id, mode);
     setMenu(null);
     if (!remaining.some((tab) => tab.id === activeId)) {
-      router.push(tabUrl(target.id, target.edit));
+      router.push(tabUrl(target.id, editing));
     }
   }
 
@@ -199,7 +199,7 @@ export function TabBar() {
                     ? "bg-[var(--tab-active-bg)] font-medium text-[var(--text-primary)]"
                     : "bg-[var(--tab-inactive-bg)] text-[var(--text-secondary)] hover:bg-[var(--tab-active-bg)] hover:text-[var(--text-primary)]"
                 }`}
-                onClick={() => router.push(tabUrl(tab.id, tab.edit))}
+                onClick={() => router.push(tabUrl(tab.id, editing))}
                 onContextMenu={(event) => openMenu(event, tab.id)}
                 title={info?.title ?? tab.id}
               >
@@ -212,8 +212,8 @@ export function TabBar() {
                 ) : (
                   <FileText className="h-4 w-4 shrink-0 text-[var(--text-tertiary)]" />
                 )}
-                {tab.edit && (
-                  <span className="h-2 w-2 shrink-0 rounded-full bg-[#3fb950]" title="编辑中（未保存改动会自动保存）" aria-hidden />
+                {editing && (
+                  <span className="h-2 w-2 shrink-0 rounded-full bg-[#3fb950]" title="全局编辑中（未保存改动会自动保存）" aria-hidden />
                 )}
                 <span className="min-w-0 flex-1 truncate">
                   {info?.title ?? "…"}

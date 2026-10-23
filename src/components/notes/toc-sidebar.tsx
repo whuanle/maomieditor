@@ -8,6 +8,12 @@ const AUTO_OPEN_THRESHOLD = 3;
 /** 标题滚过滚动容器顶部该距离后切换高亮（略大于标题的 scroll-margin-top） */
 const SPY_OFFSET = 48;
 
+// 面板宽度拖拽（与 notes-shell 文档树同款交互）：localStorage 记忆，双击复位
+const WIDTH_STORAGE_KEY = "notes-toc-width";
+const MIN_WIDTH = 200;
+const MAX_WIDTH = 480;
+const DEFAULT_WIDTH = 256; // 即原 w-64
+
 /**
  * 工具栏的目录按钮与目录面板分处服务端组件树两侧，无法共享 state，
  * 走与 notes:tree-refresh 同款的事件模式：按钮发 toggle 请求切换，
@@ -72,6 +78,42 @@ export function TocSidebar({ scrollSelector, title }: TocSidebarProps) {
   const listRef = useRef<HTMLDivElement>(null);
   // 用户手动展开/收起后，本次停留期间不再自动变更
   const userToggledRef = useRef(false);
+
+  // 面板宽度：首帧按默认渲染，挂载后恢复上次拖拽的记忆值
+  const asideRef = useRef<HTMLElement>(null);
+  const [width, setWidth] = useState(DEFAULT_WIDTH);
+  const [dragging, setDragging] = useState(false);
+  const widthRef = useRef(width);
+
+  useEffect(() => {
+    const saved = Number(window.localStorage.getItem(WIDTH_STORAGE_KEY));
+    if (Number.isFinite(saved) && saved >= MIN_WIDTH && saved <= MAX_WIDTH) {
+      widthRef.current = saved;
+      setWidth(saved);
+    }
+  }, []);
+
+  // 面板贴视口右缘，向左拖把手加宽：宽度 = 面板右缘 - 指针横坐标
+  const startResize = useCallback((event: React.MouseEvent) => {
+    event.preventDefault();
+    const right = asideRef.current?.getBoundingClientRect().right ?? window.innerWidth;
+    setDragging(true);
+    const move = (e: MouseEvent) => {
+      const next = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, right - e.clientX));
+      widthRef.current = next;
+      setWidth(next);
+    };
+    const up = () => {
+      window.localStorage.setItem(WIDTH_STORAGE_KEY, String(widthRef.current));
+      document.body.style.userSelect = "";
+      window.removeEventListener("mousemove", move);
+      window.removeEventListener("mouseup", up);
+      setDragging(false);
+    };
+    document.body.style.userSelect = "none";
+    window.addEventListener("mousemove", move);
+    window.addEventListener("mouseup", up);
+  }, []);
 
   // 首帧前先数一遍标题决定初始展开态，避免先渲染一帧再切换造成闪动。
   // 滚动容器可能尚未挂载（编辑器异步加载），此时保持收起，检出标题后由 collect 自动展开
@@ -204,7 +246,25 @@ export function TocSidebar({ scrollSelector, title }: TocSidebarProps) {
   }
 
   return (
-    <aside className="app-panel-bg anim-fade-in hidden w-64 shrink-0 flex-col border-l border-[var(--border-default)] lg:flex">
+    <aside
+      ref={asideRef}
+      style={{ width }}
+      className="app-panel-bg anim-fade-in relative hidden shrink-0 flex-col border-l border-[var(--border-default)] lg:flex"
+    >
+      <div
+        role="separator"
+        aria-orientation="vertical"
+        onMouseDown={startResize}
+        onDoubleClick={() => {
+          widthRef.current = DEFAULT_WIDTH;
+          setWidth(DEFAULT_WIDTH);
+          window.localStorage.setItem(WIDTH_STORAGE_KEY, String(DEFAULT_WIDTH));
+        }}
+        className={`absolute inset-y-0 -left-0.5 z-10 w-1 cursor-col-resize bg-transparent transition-colors hover:bg-[var(--accent-600)] ${
+          dragging ? "bg-[var(--accent-600)]" : ""
+        }`}
+        title="拖动调整宽度（双击复位）"
+      />
       <div className="flex h-11 shrink-0 items-center justify-between border-b border-[var(--border-default)] px-3">
         <span className="text-[15px] font-semibold text-[var(--text-secondary)]">目录</span>
         <button

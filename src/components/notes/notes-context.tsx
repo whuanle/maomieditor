@@ -15,8 +15,6 @@ export function refreshTree() {
 
 export interface TabInfo {
   id: string;
-  /** 该标签上次停留时是否处于编辑态 */
-  edit: boolean;
 }
 
 interface NotesContextValue {
@@ -25,7 +23,6 @@ interface NotesContextValue {
   tabs: TabInfo[];
   tabsReady: boolean;
   openTab: (id: string) => void;
-  setTabEdit: (id: string, edit: boolean) => void;
   /** 关闭标签，返回应激活的相邻标签（优先左侧） */
   closeTab: (id: string) => TabInfo | null;
   /** 关闭某标签左侧/右侧/其它标签，返回剩余标签（调用方据此决定是否需要切换激活页） */
@@ -90,8 +87,8 @@ export function NotesProvider({ children }: { children: ReactNode }) {
       if (Array.isArray(saved)) {
         setTabs(
           saved
-            .filter((tab): tab is { id: string; edit?: boolean } => typeof tab?.id === "string" && ID_RE.test(tab.id))
-            .map((tab) => ({ id: tab.id, edit: tab.edit === true }))
+            .filter((tab): tab is { id: string } => typeof tab?.id === "string" && ID_RE.test(tab.id))
+            .map((tab) => ({ id: tab.id }))
         );
       }
     } catch {
@@ -118,19 +115,7 @@ export function NotesProvider({ children }: { children: ReactNode }) {
   }, [tree]);
 
   const openTab = useCallback((id: string) => {
-    setTabs((prev) => (prev.some((tab) => tab.id === id) ? prev : [...prev, { id, edit: false }]));
-  }, []);
-
-  const setTabEdit = useCallback((id: string, edit: boolean) => {
-    setTabs((prev) => {
-      const index = prev.findIndex((tab) => tab.id === id);
-      if (index < 0 || prev[index].edit === edit) {
-        return prev;
-      }
-      const next = [...prev];
-      next[index] = { ...next[index], edit };
-      return next;
-    });
+    setTabs((prev) => (prev.some((tab) => tab.id === id) ? prev : [...prev, { id }]));
   }, []);
 
   const closeTab = useCallback(
@@ -174,7 +159,7 @@ export function NotesProvider({ children }: { children: ReactNode }) {
 
   return (
     <NotesContext.Provider
-      value={{ tree, loadTree, tabs, tabsReady, openTab, setTabEdit, closeTab, closeTabs, closeAllTabs }}
+      value={{ tree, loadTree, tabs, tabsReady, openTab, closeTab, closeTabs, closeAllTabs }}
     >
       {children}
     </NotesContext.Provider>

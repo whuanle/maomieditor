@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   AlertCircle,
   ChevronRight,
@@ -270,7 +270,10 @@ interface SidebarProps {
 export function NoteSidebar({ className, width, onOpenSettings, onOpenTrash }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { tree, loadTree } = useNotes();
+  // 编辑态是全局的：编辑中从树上/新建打开的文档自动进入编辑
+  const editing = searchParams.get("edit") === "1";
   const [query, setQuery] = useState("");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [menu, setMenu] = useState<{ x: number; y: number; node: TreeNode | null } | null>(null);
@@ -410,7 +413,7 @@ export function NoteSidebar({ className, width, onOpenSettings, onOpenTrash }: S
     }
     refreshTree();
     if (data.node) {
-      router.push(`/notes/${data.node.id}`);
+      router.push(`/notes/${data.node.id}${editing ? "?edit=1" : ""}`);
     }
     return null;
   }
@@ -706,6 +709,7 @@ export function NoteSidebar({ className, width, onOpenSettings, onOpenTrash }: S
                 depth={0}
                 expanded={expandedForRender}
                 activeId={activeId}
+                editing={editing}
                 drag={drag}
                 drop={drop}
                 snippets={contentHits}
@@ -916,6 +920,8 @@ interface TreeItemProps {
   depth: number;
   expanded: Set<string>;
   activeId: string;
+  /** 全局编辑态：链接带上 ?edit=1，点开的文档直接进入编辑 */
+  editing: boolean;
   drag: DragState | null;
   drop: DropState | null;
   /** 正文检索命中片段：id → 片段（搜索态才非空） */
@@ -937,6 +943,7 @@ function TreeItem({
   depth,
   expanded,
   activeId,
+  editing,
   drag,
   drop,
   snippets,
@@ -974,7 +981,8 @@ function TreeItem({
     ) : null;
 
   const content = (
-    <span className="flex min-w-0 flex-1 items-center gap-1.5">
+    // text-left：附件/编辑态笔记包在 <button> 里，浏览器默认 text-align:center 会把标题居中
+    <span className="flex min-w-0 flex-1 items-center gap-1.5 text-left">
       {isAttachment ? (
         <Paperclip className="h-4 w-4 shrink-0 text-[var(--text-tertiary)]" />
       ) : (
@@ -1049,7 +1057,7 @@ function TreeItem({
             {content}
           </button>
         ) : (
-          <Link href={`/notes/${node.id}`} className="flex min-w-0 flex-1 items-center">
+          <Link href={`/notes/${node.id}${editing ? "?edit=1" : ""}`} className="flex min-w-0 flex-1 items-center">
             {content}
           </Link>
         )}
@@ -1090,6 +1098,7 @@ function TreeItem({
               depth={depth + 1}
               expanded={expanded}
               activeId={activeId}
+              editing={editing}
               drag={drag}
               drop={drop}
               snippets={snippets}

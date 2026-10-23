@@ -5,8 +5,9 @@
  *
  * - Typora 式体验：直接输入 markdown 语法（``` 围栏、| 表格、# 标题、**加粗**）即时渲染
  * - 工具栏「编辑模式」可切 IR / 所见即所得 / 分屏源码（SV 模式即纯源码编辑）
- * - 图片插入/粘贴自动上传为当前笔记的附件（/api/upload），正文写相对引用
- *   ../../files/{分桶}/{id}.{ext}，浏览器在 /notes/{id} 页面下解析到 /files 路由，
+ * - 图片插入/粘贴/拖入自动上传为当前笔记的内嵌附件（/api/upload，inline=1，不在目录树显示），
+ *   其余文件同样上传并挂到当前笔记下（目录树可见），正文插入 `[文件名](相对引用)` 链接；
+ *   引用统一写 ../../files/{分桶}/{id}.{ext}，浏览器在 /notes/{id} 页面下解析到 /files 路由，
  *   阅读管线再按附件 ID 还原成 /api/attachments/{id}
  * - Ctrl/Cmd+S 保存由外层容器捕获处理
  */
@@ -45,15 +46,20 @@ export default function RichEditor({ noteId, initialContent, onChange, onSave }:
   const saveRef = useRef(onSave);
   saveRef.current = onSave;
 
-  const uploadImages = useCallback(async (files: File[]) => {
+  const uploadFiles = useCallback(async (files: File[]) => {
     const vditor = vditorRef.current;
     if (!vditor) {
       return;
     }
     for (const file of files) {
+      const isImage =
+        file.type.startsWith("image/") || /\.(png|jpe?g|gif|webp|svg|avif|bmp|ico)$/i.test(file.name);
       const formData = new FormData();
       formData.set("noteId", noteIdRef.current);
-      formData.set("inline", "1"); // 粘贴/插入的图片属于正文，不在目录树中显示
+      // 图片属于正文内容，不在目录树中显示；其余文件挂为笔记附件（目录树可见）
+      if (isImage) {
+        formData.set("inline", "1");
+      }
       formData.append("file", file);
 
       let data: { error?: string; attachments?: { id: string; name: string; path: string }[] };
@@ -61,18 +67,20 @@ export default function RichEditor({ noteId, initialContent, onChange, onSave }:
         const response = await fetch("/api/upload", { method: "POST", body: formData });
         data = await response.json();
         if (!response.ok) {
-          throw new Error(data.error ?? "图片上传失败");
+          throw new Error(data.error ?? "文件上传失败");
         }
       } catch (error) {
-        vditor.tip(error instanceof Error ? error.message : "图片上传失败");
+        vditor.tip(error instanceof Error ? error.message : "文件上传失败");
         return;
       }
 
       refreshTree();
       const saved = data.attachments?.[0];
       if (saved) {
-        // 插入本地编辑器可解析的相对引用；/files 路由保证编辑器内即可预览
-        vditor.insertValue(`![${file.name.replace(/[\\[\]]/g, "")}](${saved.path})\n`);
+        // 图片内嵌显示，其余文件插入链接引用；路径为编辑器/阅读管线可解析的相对引用
+        const label = file.name.replace(/[\\[\]]/g, "");
+        const ref = isImage ? `![${label}](${saved.path})` : `[${label}](${saved.path})`;
+        vditor.insertValue(`${ref}\n`);
       }
     }
   }, []);
@@ -142,10 +150,9 @@ export default function RichEditor({ noteId, initialContent, onChange, onSave }:
       },
       input: (markdown) => onChangeRef.current(markdown),
       upload: {
-        accept: "image/*",
         multiple: true,
         handler: (files) => {
-          void uploadImages(files);
+          void uploadFiles(files);
           return null;
         },
       },
