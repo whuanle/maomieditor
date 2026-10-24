@@ -1,12 +1,14 @@
 import { enqueueAutoSync } from "./sync-jobs";
 
 /**
- * 自动推送触发器：文档变更信号（store 的 onDocsChanged，由 instrumentation 装配）
- * 防抖 5 秒后做一次增量推送（只推不拉，见 sync-engine 的 auto 模式），推送以后台任务执行。
+ * 自动推送触发器：两路触发信号在这里合流、防抖 5 秒后做一次增量推送
+ * （只推不拉，见 sync-engine 的 auto 模式），推送以后台任务执行：
+ * - store 的 onDocsChanged：API 写操作成功后的直达信号（由 instrumentation 装配）
+ * - sync-watcher 的 fs.watch 事件转发：AI/脚本等不经 API 的外部直改
  *
- * 不监听文件系统——文档只会经界面/API 变更，在变更源头通知；数千文档时递归 fs.watch
- * 本身就是可观的性能开销。每次触发都现读 .data/sync.json——配置变更（启停/改桶）无需重启
- * 即时生效；未启用时 enqueueAutoSync 内部静默跳过。
+ * 不做任何轮询/扫描——两条路都是事件驱动，空闲时零开销。是否真的推送每次
+ * 现读 .data/sync.json——配置变更（启停/改桶）无需重启即时生效；未启用时
+ * enqueueAutoSync 内部静默跳过。
  *
  * 尾沿补推：推送请求被运行中的任务吸收（变更落在该任务的枚举之后）或任务运行期间
  * 又有新变更时，5 秒后自动再排一轮，直到推送真正创建——保证变更最终必被推送。
